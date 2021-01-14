@@ -2,7 +2,8 @@
 <package format="2">
   <name>nuturtle_description</name>
   <version>0.0.1</version>
-  <description>The nuturtle_description package</description>
+  <description>urdf files and basic debugging, testing, and visualization code for the nuturtle
+  </description>
 
   <!-- One maintainer tag required, multiple allowed, one person per tag -->
   <!-- Example:  -->
