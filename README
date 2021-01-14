@@ -3,4 +3,4 @@
 * Winter 2021
 # Package List
 This repository consists of several ROS packages
-- <PACKAGE1> - one sentence description
+- <nuturtle_description> - contains turtle burger urdf and load.launch to launch urdf with optional viewing in rviz
