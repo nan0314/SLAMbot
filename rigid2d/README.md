@@ -37,4 +37,4 @@ A library for handling transformations in SE(2).
    
 5. Why is Transform2D::inv() declared const while Transform2D::operator*=() is not (Refer to C++ core guidelines in your answer)?
 
-    * According to Con.2, A member function should be marked const unless it changes the object’s observable state. This gives a more precise statement of design intent, better readability, more errors caught by the compiler, and sometimes more optimization opportunities.
+    * According to Con.2, A member function should be marked const unless it changes the object’s observable state. This gives a more precise statement of design intent, better readability, more errors caught by the compiler, and sometimes more optimization opportunities. That is, in the case of inv() we are not changing the input array.

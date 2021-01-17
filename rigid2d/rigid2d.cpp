@@ -30,6 +30,13 @@ namespace rigid2d {
 
         return is;
     }
+    
+    Transform2D::Transform2D(){
+        ctheta = cos(0);
+        stheta = sin(0);
+        x = 0;
+        y = 0;
+    }
 
     Transform2D::Transform2D(const Vector2D & trans){
         x = trans.x;
@@ -62,23 +69,22 @@ namespace rigid2d {
     }
 
     Transform2D Transform2D::inv() const{
-        Transform2D T_inv;
-        T_inv.ctheta = ctheta;
-        T_inv.stheta = -stheta;
-        T_inv.x = -(x*T_inv.ctheta - y*T_inv.stheta);
-        T_inv.y = -(x*T_inv.stheta + y*T_inv.ctheta);
+        Vector2D v;
+        double new_stheta = -stheta;
+        v.x = -(x*ctheta - y*-stheta);
+        v.y = -(x*-stheta + y*ctheta);
 
-        return T_inv;
+        return Transform2D(v,asin(new_stheta));
     }
 
     Transform2D & Transform2D::operator*=(const Transform2D & rhs){
-        Transform2D out;
-        out.x += out.ctheta*rhs.x - out.stheta*rhs.y;
-        out.y += rhs.x*out.stheta + rhs.y*out.ctheta;
-        out.ctheta = out.ctheta*rhs.ctheta - out.stheta*rhs.stheta;
-        out.stheta = out.stheta*rhs.ctheta + out.ctheta*rhs.stheta;
+        
+        x = ctheta*rhs.x - stheta*rhs.y + x;
+        y = rhs.x*stheta + rhs.y*ctheta + y;
+        ctheta = ctheta*rhs.ctheta - stheta*rhs.stheta;
+        stheta = stheta*rhs.ctheta + ctheta*rhs.stheta;
 
-        return out;
+        return *this;
     }
 
     std::ostream & operator<<(std::ostream & os, const Transform2D & tf){
@@ -126,11 +132,55 @@ namespace rigid2d {
 }
 int main(){
 
-    using namespace std;
+    using namespace rigid2d;
 
-    rigid2d::Vector2D v;
-    cin>>v;
-    cout<<v << endl;
+    Transform2D T_ab;
+    Transform2D T_bc;
+
+    std::cout << "Enter a transformation as 3 numbers (degrees, dx, dy) separated by spaces or newlines:" << std::endl;
+    std::cin >> T_ab;
+
+    std::cout << "Enter a second transformation as 3 numbers (degrees, dx, dy) separated by spaces or newlines:" << std::endl;
+    std::cin >> T_bc;
+    std::cout << std::endl;
+
+    Transform2D T_ba = T_ab.inv();
+    Transform2D T_cb = T_bc.inv();
+
+    Transform2D T_ac = T_ab*T_bc;
+    Transform2D T_ca = T_ac.inv();
+
+    std::cout << "T_ab:\n" << T_ab << std::endl;
+    std::cout << "T_ba:\n" << T_ba << std::endl;
+    std::cout << "T_bc:\n" << T_bc << std::endl;
+    std::cout << "T_cb:\n" << T_cb << std::endl;
+    std::cout << "T_ac:\n" << T_ac << std::endl;
+    std::cout << "T_ca:\n" << T_ca << std::endl;
+
+    Vector2D in;
+    char frame;
+    std::cout << "Enter a 2d vector: " << std::endl;
+    std::cin >> in;
+
+    std::cout << "What frame is the vector in (a, b, or c)?" << std::endl;
+    std:: cin >> frame;
+
+    if (frame == 'a'){
+        std::cout << "In frame a: " << in << std::endl;
+        std::cout << "In frame b: " << T_ab(in) << std::endl;
+        std::cout << "In frame c: " << T_ac(in) << std::endl;
+    } else if (frame == 'b'){
+        std::cout << "In frame a: " << T_ba(in) << std::endl;
+        std::cout << "In frame b: " << (in) << std::endl;
+        std::cout << "In frame c: " << T_bc(in) << std::endl;
+    } else if (frame == 'c'){
+        std::cout << "In frame a: " << T_ca(in) << std::endl;
+        std::cout << "In frame b: " << T_cb(in) << std::endl;
+        std::cout << "In frame c: " << (in) << std::endl;
+    }else{
+        std::cout << "Invalid Frame" << std::endl;
+    }
+
 
     return 0;
 }
