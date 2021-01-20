@@ -69,6 +69,8 @@ namespace rigid2d
     {
         double x = 0.0;
         double y = 0.0;
+
+        Vector2D norm();
     };
 
     /// \brief output a 2 dimensional vector as [xcomponent ycomponent]
@@ -85,6 +87,39 @@ namespace rigid2d
     /// https://en.cppreference.com/w/cpp/io/basic_istream/peek
     /// https://en.cppreference.com/w/cpp/io/basic_istream/get
     std::istream & operator>>(std::istream & is, Vector2D & v);
+
+    /// \brief a twist in 2 dimensions
+    struct Twist2D{
+
+        double v_x,v_y,w;
+
+        /// \brief Create a twist with no velocity
+        Twist2D();
+
+        /// \brief Create a twist with a linear and angular component
+        /// \param v_x - the linear velocity in the x direction
+        /// \param v_y - the linear velocity in the y direction
+        /// \param w - the angular velocity
+        Twist2D(double v_x, double v_y, double w);
+
+        /// \brief \see operator<<(...) (declared outside this class)
+        /// for a description
+        friend std::ostream & operator<<(std::ostream & os, const Twist2D & V);
+
+    };
+
+    /// \brief should print a human readable version of the twist:
+    /// An example output:
+    /// w (rad/s): 90 v_x: 3 v_y: 5
+    /// \param os - an output stream
+    /// \param V - the twist to print
+    std::ostream & operator<<(std::ostream & os, const Twist2D & V);
+
+    /// \brief Read a twist from stdin
+    /// Should be able to read input either as output by operator<< or
+    /// as 3 numbers (w, v_x, v_y) separated by spaces or newlines
+    std::istream & operator>>(std::istream & is, Twist2D & V);
+
 
     /// \brief a rigid body transformation in 2 dimensions
     class Transform2D
@@ -128,6 +163,12 @@ namespace rigid2d
         /// \brief \see operator<<(...) (declared outside this class)
         /// for a description
         friend std::ostream & operator<<(std::ostream & os, const Transform2D & tf);
+
+        /// \brief convert a twist to a different reference frame using the adjoint
+        /// \param V - the twist to be converted
+        /// \return - the transformed twist in a different reference frame.
+        Twist2D operator()(Twist2D & V) const;
+
     };
 
 
@@ -149,6 +190,8 @@ namespace rigid2d
     /// \return the composition of the two transforms
     /// HINT: This function should be implemented in terms of *=
     Transform2D operator*(Transform2D lhs, const Transform2D & rhs);
+
+    
 }
 
 #endif
