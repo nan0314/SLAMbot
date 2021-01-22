@@ -1,0 +1,10 @@
+<launch>
+  
+  <param name="max_xdot" value ="2.0"/>
+  <param name="max_wdot" value = "1.0"/>
+  <param name="frequency" value = "100"/>
+
+  <node pkg="turtlesim" name="sim" type="turtlesim_node"/>
+  <node pkg="trect" name="rect" type="turtle_rect"/>
+
+</launch>
