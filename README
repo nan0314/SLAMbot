@@ -4,3 +4,4 @@
 # Package List
 This repository consists of several ROS packages
 - <nuturtle_description> - contains turtle burger urdf and load.launch to launch urdf with optional viewing in rviz
+- <trect> - test package to make a turtle follow a rectangle trajectory in turtlesim
