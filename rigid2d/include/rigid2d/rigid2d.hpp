@@ -145,6 +145,22 @@ namespace rigid2d
         /// \param rot - the rotation, in radians
         Transform2D(const Vector2D & trans, double radians);
 
+        /// \brief accessor function to access ctheta private member
+        /// \return cos of dtheta
+        double getCtheta() const;
+
+        /// \brief accessor function to access stheta private member
+        /// \return sin of dtheta 
+        double getStheta() const;
+
+        /// \brief accessor function to access x private member
+        /// \return dx
+        double getX() const;
+
+        /// \brief accessor function to access y private member
+        /// \return dy
+        double getY()const;
+
         /// \brief apply a transformation to a Vector2D
         /// \param v - the vector to transform
         /// \return a vector in the new coordinate system

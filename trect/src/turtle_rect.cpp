@@ -1,3 +1,16 @@
+/// \file turtle_rect.cpp
+/// \brief This file is a ROS node used to make a turtle in turtlesim teleport and travel
+///         in a user specified rectangle.
+///
+/// PARAMETERS:
+///     parameter_name (parameter_type): description of the parameter
+/// PUBLISHES:
+///     turtle1/cmd_vel (geometry_msgs/Twist): controls linear and angular velocity of turtle 1
+/// SUBSCRIBES:
+///     turtle1/pose (turtlesim/Pose): The x, y, theta, linear velocity, and angular velocity of turtle1
+/// SERVICES:
+///     start (trect/start): Teleports the turtle, draws a trajectory, and follows that trajectory
+
 #include <ros/ros.h>
 #include "std_msgs/String.h"
 #include <std_srvs/Empty.h>
@@ -141,8 +154,8 @@ int main(int argc, char **argv)
 
     int count = 0;
     while (ros::ok())
-        {
-        
+    {
+            
         // log parameters from Parameter Server 
         ROS_INFO_STREAM(max_xdot);
         ROS_INFO_STREAM(max_wdot);

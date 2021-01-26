@@ -1,7 +1,7 @@
 #include <iostream>
-#include "rigid2d.hpp"
+#include "rigid2d/rigid2d.hpp"
 
-
+/// \brief function to demonstrate rigid2d functions
 int main(){
 
     using namespace rigid2d;
@@ -9,6 +9,7 @@ int main(){
     Transform2D T_ab;
     Transform2D T_bc;
 
+    // User input two transforms from command line
     std::cout << "Enter a transformation as 3 numbers (degrees, dx, dy) separated by spaces or newlines:" << std::endl;
     std::cin >> T_ab;
 
@@ -16,12 +17,14 @@ int main(){
     std::cin >> T_bc;
     std::cout << std::endl;
 
+    // Find transforms T_ba, T_cb, T_ac, and T_ca
     Transform2D T_ba = T_ab.inv();
     Transform2D T_cb = T_bc.inv();
 
     Transform2D T_ac = T_ab*T_bc;
     Transform2D T_ca = T_ac.inv();
 
+    // Print above transforms to terminal
     std::cout << "T_ab:\n" << T_ab << std::endl;
     std::cout << "T_ba:\n" << T_ba << std::endl;
     std::cout << "T_bc:\n" << T_bc << std::endl;
@@ -29,6 +32,7 @@ int main(){
     std::cout << "T_ac:\n" << T_ac << std::endl;
     std::cout << "T_ca:\n" << T_ca << std::endl;
 
+    // user input 2d vector and 2d twist
     Vector2D in;
     Twist2D V;
     char frame;
@@ -41,6 +45,7 @@ int main(){
     std::cin >> V;
     std::cout << std::endl;
 
+    // user specify frame and output vector and twist in all frames
     std::cout << "What frame is the vector and twist in (a, b, or c)?" << std::endl;
     std:: cin >> frame;
     std::cout << std::endl;
