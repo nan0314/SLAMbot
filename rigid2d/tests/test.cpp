@@ -157,3 +157,38 @@ TEST_CASE("Transform Composition Operator (*=)", "[transform]"){ // Arun, Kumar
     REQUIRE(almost_equal(transMat.getY(), 0));
 }
 
+TEST_CASE("Inverse of Transform Matrix", "[transform]"){ // Sarah, Ziselman
+    using namespace rigid2d;
+
+    Vector2D v;
+    v.x = 1;
+    v.y = 2;
+
+    Transform2D transMat = Transform2D(v, PI);
+    Transform2D invTransMat = transMat.inv();
+
+    REQUIRE(almost_equal(invTransMat.getCtheta(), cos(PI)));
+    REQUIRE(almost_equal(invTransMat.getStheta(), sin(PI)));
+    REQUIRE(almost_equal(invTransMat.getX(), 1));
+    REQUIRE(almost_equal(invTransMat.getY(), 2));
+}
+
+TEST_CASE("Change twist reference frame", "[transform]"){ // Edoardo, Rundeddu
+	using namespace rigid2d;
+	
+	Vector2D p;
+	p.x = 1;
+	p.y = 2;
+	
+	Transform2D transMat = Transform2D(p, PI/2);
+	
+	Twist2D tw;
+    tw.v_x = 3;
+    tw.v_y = 5;
+    tw.w = 2;
+
+	Twist2D tw_out = transMat(tw);
+	REQUIRE(almost_equal(tw_out.w, 2));
+	REQUIRE(almost_equal(tw_out.v_x, -1));
+	REQUIRE(almost_equal(tw_out.v_y, 1));
+}

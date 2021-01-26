@@ -99,12 +99,13 @@ namespace rigid2d {
     }
 
     Transform2D Transform2D::inv() const{
-        Vector2D v;
-        double new_stheta = -stheta;
-        v.x = -(x*ctheta - y*-stheta);
-        v.y = -(x*-stheta + y*ctheta);
+        Transform2D Tinv;
+        Tinv.ctheta = ctheta;
+        Tinv.stheta = -stheta;
+        Tinv.x = -(x*ctheta + y*stheta);
+        Tinv.y = -(x*-stheta + y*ctheta);
 
-        return Transform2D(v,asin(new_stheta));
+        return Tinv;
     }
 
     Transform2D & Transform2D::operator*=(const Transform2D & rhs){
@@ -120,10 +121,10 @@ namespace rigid2d {
     }
 
     Twist2D Transform2D::operator()(Twist2D & V) const{
-        double v_xprime = V.v_x*ctheta - V.v_y*stheta;
-        double v_yprime = V.v_x*stheta + V.v_y*ctheta;
+        double v_xprime = y*V.w + V.v_x*ctheta - V.v_y*stheta;
+        double v_yprime = V.v_x*stheta + V.v_y*ctheta - x*V.w;
 
-        return Twist2D(V.w,v_xprime,v_yprime);
+        return Twist2D(v_xprime,v_yprime,V.w);
     }
 
     std::ostream & operator<<(std::ostream & os, const Transform2D & tf){
