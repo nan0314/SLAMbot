@@ -3,13 +3,16 @@
 ///         in a user specified rectangle.
 ///
 /// PARAMETERS:
-///     parameter_name (parameter_type): description of the parameter
+///     max_xdot (double): maximum xvelocity of turtle
+///     max_wdot (double): maximum angular velocity
+///     frequency (double): control loop frequency
 /// PUBLISHES:
 ///     turtle1/cmd_vel (geometry_msgs/Twist): controls linear and angular velocity of turtle 1
 /// SUBSCRIBES:
 ///     turtle1/pose (turtlesim/Pose): The x, y, theta, linear velocity, and angular velocity of turtle1
 /// SERVICES:
-///     start (trect/start): Teleports the turtle, draws a trajectory, and follows that trajectory
+///     start (trect/start): Teleports the turtle, draws a trajectory, and follows that trajectory. Takes
+///     four integer inputs x, y, w, and h
 
 #include <ros/ros.h>
 #include "std_msgs/String.h"
@@ -121,7 +124,7 @@ bool start(trect::start::Request  &req,
 
         // cause robot to start following trajectory
         state = BOTTOM;
-        target = req.x + w;
+        target = req.x + w;     // create first target, end of bottom line
         ros::spinOnce();
         return true;
     }
@@ -165,47 +168,61 @@ int main(int argc, char **argv)
 
         // state machine to move turtle in rectangle
         switch(state){
+
+            // idle case turtle does not move
             case IDLE:
 
                 msg.linear.x = 0;
                 msg.angular.z = 0;                
                 vel_pub.publish(msg);
                 break;
+
+            // Bottom case turtle moves forward until reaching end of bottom line
             case BOTTOM:
 
+                // if target has not been reached move forward else switch to Rotate state
                 if(pose->x<target){
                     msg.linear.x = max_xdot;
                     vel_pub.publish(msg);
                 } else{
                     state = ROTATE;
                     prev = BOTTOM;
-                    target = PI/2;
+                    target = PI/2;  // sets target to pi/2 radians for Rotate case
                 }
                 break;
+
+            // Right case turtle moves forward until reaching end of right line
             case RIGHT:
                 
+                // if target has not been reached move forward else switch to Rotate case
                 if(pose->y<target){
                     msg.linear.x = max_xdot;
                     vel_pub.publish(msg);
                 } else{
                     state = ROTATE;
                     prev = RIGHT;
-                    target = PI;
+                    target = PI;    // sets target to pi radians for Rotate case
                 }
                 break;
+
+            // Top case turtle moves forward until reaching end of top line
             case TOP:
 
+                // if target has not been reached move forward else switch to Rotate case
                 if(pose->x>target){
                     msg.linear.x = max_xdot;
                     vel_pub.publish(msg);
                 } else{
                     state = ROTATE;
                     prev = TOP;
-                    target = -PI/2;
+                    target = -PI/2; // Sets target to -pi/2 radians for rotate case
                 }
                 break;
+            
+            // Left case turtle moves forward until reaching end of left line
             case LEFT:
 
+                // if target has not been reached move forward else switch to Rotate case
                 if (pose->y>target){
                     msg.linear.x = max_xdot;
                     vel_pub.publish(msg);
@@ -215,6 +232,9 @@ int main(int argc, char **argv)
                     target = 0;
                 }
                 break;
+
+            // Rotate case turtle rotates until target is reached then switches to next case based
+            // on the previous case
             case ROTATE:
                 if (fabs(pose->theta - target) > 0.01){
                     msg.linear.x = 0;
