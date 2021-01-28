@@ -5,6 +5,6 @@
   <param name="frequency" value = "100"/>
 
   <node pkg="turtlesim" name="sim" type="turtlesim_node"/>
-  <node pkg="trect" name="rect" type="turtle_rect"/>
+  <node pkg="trect" output = "screen" name="rect" type="turtle_rect"/>
 
 </launch>

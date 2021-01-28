@@ -151,15 +151,14 @@ int main(int argc, char **argv)
     // set publishing frequency
     ros::Rate loop_rate(frequency);
 
+    // log parameters from Parameter Server 
+    ROS_INFO("max_xdot: %f", max_xdot);
+    ROS_INFO("max_wdot: %f", max_wdot);
+    ROS_INFO("frequency: %d", frequency);
 
     int count = 0;
     while (ros::ok())
     {
-            
-        // log parameters from Parameter Server 
-        ROS_INFO_STREAM(max_xdot);
-        ROS_INFO_STREAM(max_wdot);
-        ROS_INFO_STREAM(frequency);
 
         // initialize velocity command service class
         geometry_msgs::Twist msg;
