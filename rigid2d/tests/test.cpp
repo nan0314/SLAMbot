@@ -1,13 +1,8 @@
-#define CATCH_CONFIG_MAIN
-#include "rigid2d/catch.hpp"
+#include <catch_ros/catch.hpp>
 #include "rigid2d/rigid2d.hpp"
 #include <cmath>
 #include <iostream>
 #include <sstream>
-
-/* !!!
-Compile using command: g++ -Wall -Wextra -g -std=c++17 -o test test.cpp rigid2d.cpp (takes a really long time)
-!!! */ 
 
 /// \brief testing transform2D default constructor
 TEST_CASE("Default constructor creates identity transform","[def_constructor]"){ // Nathaniel, Nyberg
