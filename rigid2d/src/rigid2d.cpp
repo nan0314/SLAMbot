@@ -155,10 +155,10 @@ namespace rigid2d {
     }
 
     Twist2D Transform2D::operator()(Twist2D & V) const{
-        double v_xprime = y*V.w + V.v_x*ctheta - V.v_y*stheta;
-        double v_yprime = V.v_x*stheta + V.v_y*ctheta - x*V.w;
+        double v_xprime = y*V.dth + V.dx*ctheta - V.dy*stheta;
+        double v_yprime = V.dx*stheta + V.dy*ctheta - x*V.dth;
 
-        return Twist2D(v_xprime,v_yprime,V.w);
+        return Twist2D(v_xprime,v_yprime,V.dth);
     }
 
     std::ostream & operator<<(std::ostream & os, const Transform2D & tf){
@@ -207,21 +207,21 @@ namespace rigid2d {
 
     // Twist Functions
     Twist2D::Twist2D(){
-        v_x = 0;
-        v_y = 0;
-        w = 0;
+        dx = 0;
+        dy = 0;
+        dth = 0;
     }
 
     Twist2D::Twist2D(double v_x,double v_y, double w){
-        this->v_x = v_x;
-        this->v_y = v_y;
-        this->w = w;
+        this->dx = v_x;
+        this->dy = v_y;
+        this->dth = w;
     }
 
     std::ostream & operator<<(std::ostream & os, const Twist2D & V){
         using namespace std;
 
-        return os << "w (rad/s): " << V.w << " v_x: " << V.v_x << " v_y: " << V.v_y << endl;
+        return os << "w (rad/s): " << V.dth << " v_x: " << V.dx << " v_y: " << V.dy << endl;
     }
 
     std::istream & operator>>(std::istream & is, Twist2D & V){
@@ -252,6 +252,31 @@ namespace rigid2d {
         V = Twist2D(w,x,y);
 
         return is;
+    }
+
+    Transform2D integrateTwist(const Twist2D &V){
+
+        Transform2D out;
+
+        
+        if (V.dth == 0){        // Case pure translation-- add deltas
+            Vector2D v;
+            v.x = V.dx;
+            v.y = V.dth;
+            out = Transform2D(v);
+        } else
+        {
+            Vector2D bs;
+            bs.x = -V.dx/V.dth;
+            bs.y = V.dy/V.dth;
+            auto T_bs = Transform2D(bs);        // Translate to/from center of rotations
+            auto T_ssp = Transform2D(V.dth);    // Rotate about center of rotation
+
+            out = T_bs*T_ssp*(T_bs.inv());
+        }
+
+        return out;
+        
     }
 
 

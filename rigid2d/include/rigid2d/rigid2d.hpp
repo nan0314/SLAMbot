@@ -138,16 +138,16 @@ namespace rigid2d
     /// \brief a twist in 2 dimensions
     struct Twist2D{
 
-        double v_x,v_y,w;
+        double dx,dy,dth;
 
         /// \brief Create a twist with no velocity
         Twist2D();
 
         /// \brief Create a twist with a linear and angular component
-        /// \param v_x - the linear velocity in the x direction
-        /// \param v_y - the linear velocity in the y direction
-        /// \param w - the angular velocity
-        Twist2D(double v_x, double v_y, double w);
+        /// \param dx - the linear velocity in the x direction
+        /// \param dy - the linear velocity in the y direction
+        /// \param dth - the angular velocity
+        Twist2D(double dx, double dy, double dth);
 
         /// \brief \see operator<<(...) (declared outside this class)
         /// for a description
@@ -167,6 +167,11 @@ namespace rigid2d
     /// as 3 numbers (w, v_x, v_y) separated by spaces or newlines
     std::istream & operator>>(std::istream & is, Twist2D & V);
 
+    /// \brief compute the transformation corresponding to a rigid body 
+    /// following a constant twist (in its original body frame) for one time unit
+    /// \param V - twist to be integrated
+    /// \return transformation of integration
+    Transform2D integrateTwist(const Twist2D &V);
 
     /// \brief a rigid body transformation in 2 dimensions
     class Transform2D
