@@ -4,6 +4,11 @@
 #include <iostream>
 #include <sstream>
 
+/**********************************
+ * Transform2D Tests
+ *********************************/
+
+
 /// \brief testing transform2D default constructor
 TEST_CASE("Default constructor creates identity transform","[def_constructor]"){ // Nathaniel, Nyberg
     using namespace rigid2d;
@@ -186,4 +191,62 @@ TEST_CASE("Change twist reference frame", "[transform]"){ // Edoardo, Rundeddu
 	REQUIRE(almost_equal(tw_out.w, 2));
 	REQUIRE(almost_equal(tw_out.v_x, -1));
 	REQUIRE(almost_equal(tw_out.v_y, 1));
+}
+
+/**********************************
+ * Vector2D Tests
+ *********************************/
+
+/// \brief testing vector addition operator
+TEST_CASE("Vector addition", "[v+]"){ // Nathaniel Nyberg
+    using namespace rigid2d;
+
+    Vector2D v;
+    v.x = 1;
+    v.y = 2;
+
+    Vector2D v2;
+    v2.x = 2;
+    v2.y = 3;
+
+    auto result = v+v2;
+
+    REQUIRE(almost_equal(result.x, 3));
+    REQUIRE(almost_equal(result.y, 5));
+}
+
+
+/// \brief testing vector subtraction operator
+TEST_CASE("Vector subtraction", "[v-]"){ // Nathaniel Nyberg
+    using namespace rigid2d;
+
+    Vector2D v;
+    v.x = 1;
+    v.y = 2;
+
+    Vector2D v2;
+    v2.x = 2;
+    v2.y = 2;
+
+    auto result = v2-v;
+
+    REQUIRE(almost_equal(result.x, 1));
+    REQUIRE(almost_equal(result.y, 0));
+}
+
+/// \brief testing vector scaling operator
+TEST_CASE("Vector scaling", "[v*]"){ // Nathaniel Nyberg
+    using namespace rigid2d;
+
+    Vector2D v;
+    v.x = 1;
+    v.y = 2;
+
+    auto result1 = 3*v;
+    auto result2 = v*3;
+
+    REQUIRE(almost_equal(result1.x, 3));
+    REQUIRE(almost_equal(result1.y, 6));
+    REQUIRE(almost_equal(result2.x, 3));
+    REQUIRE(almost_equal(result2.y, 6));
 }

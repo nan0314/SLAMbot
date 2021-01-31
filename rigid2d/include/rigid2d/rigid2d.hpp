@@ -70,7 +70,28 @@ namespace rigid2d
         double x = 0.0;
         double y = 0.0;
 
+        /// \brief outputs a normalized vector2D
+        /// \return unit vector in same direction as input
         Vector2D norm();
+
+        /// \brief perform basic vector addition and store result 
+        /// in this object
+        /// \param rhs vector to be summed
+        /// \return sum of vector and rhs
+        Vector2D &operator+=(const Vector2D &rhs);
+
+        /// \brief perform basic vector subtraction and store result 
+        /// in this object
+        /// \param rhs vector to be subtracted
+        /// \return vector minus rhs
+        Vector2D &operator-=(const Vector2D &rhs);
+
+        /// \brief scale this vector and store the result 
+        /// in this object
+        /// \param scalar - value to scale vector by
+        /// \return scaled vector2D
+        Vector2D & operator*=(double scalar);
+
     };
 
     /// \brief output a 2 dimensional vector as [xcomponent ycomponent]
@@ -87,6 +108,32 @@ namespace rigid2d
     /// https://en.cppreference.com/w/cpp/io/basic_istream/peek
     /// https://en.cppreference.com/w/cpp/io/basic_istream/get
     std::istream & operator>>(std::istream & is, Vector2D & v);
+
+    /// \brief sum two vectors together, returning their sum
+    /// \param lhs - the left hand operand
+    /// \param rhs - the right hand operand
+    /// \return the sum of the two vectors
+    Vector2D operator+(Vector2D lhs, const Vector2D & rhs);
+
+    /// \brief subtract one vector from another, returning their difference
+    /// \param lhs - the left hand operand
+    /// \param rhs - the right hand operand
+    /// \return the result of lhs minus rhs
+    Vector2D operator-(Vector2D lhs, const Vector2D & rhs);
+
+    /// \brief scale a vector, returning the scaled vector
+    /// \param lhs - vector to be scaled
+    /// \param rhs - scalar factor
+    /// \return the scaled vector
+    Vector2D operator*(Vector2D lhs, const double & rhs);
+
+    /// \brief scale a vector, returning the scaled vector
+    /// \param lhs - scalar factor
+    /// \param rhs - vector to be scaled
+    /// \return the scaled vector
+    Vector2D operator*(const double &lhs, Vector2D rhs);
+
+
 
     /// \brief a twist in 2 dimensions
     struct Twist2D{

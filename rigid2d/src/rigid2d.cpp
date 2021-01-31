@@ -15,6 +15,24 @@ namespace rigid2d {
         return out;
     }
 
+    Vector2D& Vector2D::operator+=(const Vector2D &rhs){
+        x+=rhs.x;
+        y+=rhs.y;
+        return *this;
+    }
+
+    Vector2D& Vector2D::operator-=(const Vector2D &rhs){
+        x-=rhs.x;
+        y-=rhs.y;
+        return *this;
+    }
+
+    Vector2D & Vector2D::operator*=(double scalar){
+        x*=scalar;
+        y*=scalar;
+        return *this;
+    }
+
     std::ostream & operator<<(std::ostream & os, const Vector2D & v){
         
         const double first = v.x;
@@ -43,6 +61,22 @@ namespace rigid2d {
         return is;
     }
     
+    Vector2D operator+(Vector2D lhs, const Vector2D & rhs){
+        return lhs+=rhs;
+    }
+
+    Vector2D operator-(Vector2D lhs, const Vector2D & rhs){
+        return lhs-=rhs;
+    }
+
+    Vector2D operator*(Vector2D lhs, const double & rhs){
+        return lhs*=rhs;
+    }
+
+    Vector2D operator*(const double & rhs, Vector2D lhs){
+        return lhs*=rhs;
+    }
+
 
     // Transform2D Functions 
     Transform2D::Transform2D(){
