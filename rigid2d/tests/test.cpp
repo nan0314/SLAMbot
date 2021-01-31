@@ -183,14 +183,14 @@ TEST_CASE("Change twist reference frame", "[transform]"){ // Edoardo, Rundeddu
 	Transform2D transMat = Transform2D(p, PI/2);
 	
 	Twist2D tw;
-    tw.v_x = 3;
-    tw.v_y = 5;
-    tw.w = 2;
+    tw.dx = 3;
+    tw.dy = 5;
+    tw.dth = 2;
 
 	Twist2D tw_out = transMat(tw);
-	REQUIRE(almost_equal(tw_out.w, 2));
-	REQUIRE(almost_equal(tw_out.v_x, -1));
-	REQUIRE(almost_equal(tw_out.v_y, 1));
+	REQUIRE(almost_equal(tw_out.dth, 2));
+	REQUIRE(almost_equal(tw_out.dx, -1));
+	REQUIRE(almost_equal(tw_out.dy, 1));
 }
 
 /**********************************
@@ -250,3 +250,17 @@ TEST_CASE("Vector scaling", "[v*]"){ // Nathaniel Nyberg
     REQUIRE(almost_equal(result2.x, 3));
     REQUIRE(almost_equal(result2.y, 6));
 }
+
+/**********************************
+ * Other Tests
+ *********************************/
+
+
+/// \brief testing angle normalization
+TEST_CASE("Normalize angle", "[ang_norm]"){ // Nathaniel Nyberg
+    using namespace rigid2d;
+
+    REQUIRE(almost_equal(normalize_angle(2*PI), 0));
+
+}
+

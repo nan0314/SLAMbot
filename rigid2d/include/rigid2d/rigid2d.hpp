@@ -47,6 +47,8 @@ namespace rigid2d
         return rad*180/PI;
     }
 
+    double normalize_angle(double rad);
+
     /// static_assertions test compile time assumptions.
     /// You should write at least one more test for each function
     /// You should also purposely (and temporarily) make one of these tests fail
@@ -167,12 +169,6 @@ namespace rigid2d
     /// as 3 numbers (w, v_x, v_y) separated by spaces or newlines
     std::istream & operator>>(std::istream & is, Twist2D & V);
 
-    /// \brief compute the transformation corresponding to a rigid body 
-    /// following a constant twist (in its original body frame) for one time unit
-    /// \param V - twist to be integrated
-    /// \return transformation of integration
-    Transform2D integrateTwist(const Twist2D &V);
-
     /// \brief a rigid body transformation in 2 dimensions
     class Transform2D
     {
@@ -259,6 +255,11 @@ namespace rigid2d
     /// HINT: This function should be implemented in terms of *=
     Transform2D operator*(Transform2D lhs, const Transform2D & rhs);
 
+    /// \brief compute the transformation corresponding to a rigid body 
+    /// following a constant twist (in its original body frame) for one time unit
+    /// \param V - twist to be integrated
+    /// \return transformation of integration
+    Transform2D integrateTwist(const Twist2D &V);
     
 }
 

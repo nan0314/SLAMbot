@@ -3,6 +3,13 @@
 
 namespace rigid2d {
 
+
+    double normalize_angle(double rad){
+        auto rem = rad/(2.0*PI) - int(rad/(2.0*PI));
+        return asin(sin(rem));
+    }
+
+
     // Vector Functions
     Vector2D Vector2D::norm(){
         
