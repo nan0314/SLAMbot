@@ -140,16 +140,16 @@ namespace rigid2d
     /// \brief a twist in 2 dimensions
     struct Twist2D{
 
-        double dx,dy,dth;
+        double dth,dx,dy;
 
         /// \brief Create a twist with no velocity
         Twist2D();
 
         /// \brief Create a twist with a linear and angular component
-        /// \param dx - the linear velocity in the x direction
-        /// \param dy - the linear velocity in the y direction
-        /// \param dth - the angular velocity
-        Twist2D(double dx, double dy, double dth);
+        /// \param w - the angular velocity
+        /// \param v_x - the linear velocity in the x direction
+        /// \param v)y - the linear velocity in the y direction
+        Twist2D(double w, double v_x, double v_y);
 
         /// \brief \see operator<<(...) (declared outside this class)
         /// for a description

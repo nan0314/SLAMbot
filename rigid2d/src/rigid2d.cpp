@@ -219,7 +219,7 @@ namespace rigid2d {
         dth = 0;
     }
 
-    Twist2D::Twist2D(double v_x,double v_y, double w){
+    Twist2D::Twist2D(double w,double v_x,double v_y){
         this->dx = v_x;
         this->dy = v_y;
         this->dth = w;
