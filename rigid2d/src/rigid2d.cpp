@@ -5,8 +5,8 @@ namespace rigid2d {
 
 
     double normalize_angle(double rad){
-        auto rem = rad/(2.0*PI) - int(rad/(2.0*PI));
-        return asin(sin(rem));
+        auto rem = atan2(sin(rad),cos(rad));
+        return rem;
     }
 
 
@@ -165,7 +165,7 @@ namespace rigid2d {
         double v_xprime = y*V.dth + V.dx*ctheta - V.dy*stheta;
         double v_yprime = V.dx*stheta + V.dy*ctheta - x*V.dth;
 
-        return Twist2D(v_xprime,v_yprime,V.dth);
+        return Twist2D(V.dth,v_xprime,v_yprime);
     }
 
     std::ostream & operator<<(std::ostream & os, const Transform2D & tf){
@@ -266,10 +266,10 @@ namespace rigid2d {
         Transform2D out;
 
         
-        if (V.dth == 0){        // Case pure translation-- add deltas
+        if (almost_equal(V.dth,0)){        // Case pure translation-- add deltas
             Vector2D v;
             v.x = V.dx;
-            v.y = V.dth;
+            v.y = V.dy;
             out = Transform2D(v);
         } else
         {

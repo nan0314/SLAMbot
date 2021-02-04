@@ -33,6 +33,10 @@ void stateCallback(const sensor_msgs::JointState::ConstPtr& msg){
 
     rigid2d::Twist2D dq = turtle.update(phi);
 
+    ROS_INFO_STREAM("Start");
+    ROS_INFO_STREAM(turtle.getX());
+    ROS_INFO_STREAM(turtle.getY());
+    ROS_INFO_STREAM(turtle.getTh());
 
     ///////////////////////////////
     // Publish odometry message
@@ -72,10 +76,7 @@ void stateCallback(const sensor_msgs::JointState::ConstPtr& msg){
     ////////////////////////////////
 
     static tf2_ros::TransformBroadcaster br;
-    geometry_msgs::TransformStamped transformStamped;
-    
-    ROS_INFO_STREAM(dq.dy);
-    
+    geometry_msgs::TransformStamped transformStamped;    
 
     transformStamped.header.stamp = ros::Time::now();
     transformStamped.header.frame_id = odom_frame_id;

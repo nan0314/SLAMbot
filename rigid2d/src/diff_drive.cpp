@@ -1,9 +1,10 @@
 #include "rigid2d/diff_drive.hpp"
 #include "rigid2d/rigid2d.hpp"
+#include <iostream>
 
 namespace rigid2d{
     DiffDrive::DiffDrive(){
-        wb = 0.16;
+        wb = 0.16/2;
         r = 0.033;
         th = 0;
         x = 0;
@@ -51,23 +52,31 @@ namespace rigid2d{
         double dx = dphi[0]*r/2 + dphi[1]*r/2;
         Twist2D dphi_twist = Twist2D(dth,dx,0);
 
+        Transform2D Tbb = integrateTwist(dphi_twist);
+        Twist2D d_qb = Twist2D(asin(Tbb.getStheta()),Tbb.getX(),Tbb.getY());
+
         // Convert to world frame dq 
-        auto dq = Transform2D(th)(dphi_twist);
+        auto dq = Transform2D(th)(d_qb);
 
         // Update q
         th+=dq.dth;
         x+=dq.dx;
         y+=dq.dy;
+        th = normalize_angle(th);
         prev_angles = phi;
 
         return dq;
     }
 
-    std::vector<double> DiffDrive::vel_update(rigid2d::Twist2D dphi_twist){
+    std::vector<double> DiffDrive::vel_update(rigid2d::Twist2D desired_twist){
         // Convert to world frame dq 
 
-        std::vector<double> wheel_change = twist2control(dphi_twist);
-        auto dq = rigid2d::Transform2D(th)(dphi_twist);
+        std::vector<double> wheel_change = twist2control(desired_twist);
+        Transform2D Tbb = integrateTwist(desired_twist);
+        Twist2D d_qb = Twist2D(asin(Tbb.getStheta()),Tbb.getX(),Tbb.getY());
+
+        // Convert to world frame dq 
+        auto dq = Transform2D(th)(d_qb);
 
         prev_angles[0] += wheel_change[0];
         prev_angles[1] += wheel_change[1];
@@ -76,6 +85,7 @@ namespace rigid2d{
         th+=dq.dth;
         x+=dq.dx;
         y+=dq.dy;
+        // th = normalize_angle(th);
 
         return prev_angles;
     }
@@ -98,4 +108,12 @@ namespace rigid2d{
         return y;
     }
 
+}
+
+int main(){
+
+    using namespace rigid2d;
+
+    std::cout<<rad2deg(normalize_angle(deg2rad(450))) << std::endl;
+    return 0;
 }
