@@ -9,7 +9,14 @@ project(rigid2d)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
   roscpp
+  tf
+  tf2
+  tf2_ros
+  nav_msgs
+  sensor_msgs
   catch_ros
+  message_runtime
+  message_generation
 )
 
 ## System dependencies are found with CMake's conventions
@@ -53,11 +60,10 @@ find_package(catkin REQUIRED COMPONENTS
 # )
 
 ## Generate services in the 'srv' folder
-# add_service_files(
-#   FILES
-#   Service1.srv
-#   Service2.srv
-# )
+add_service_files(
+  FILES
+  set_pose.srv
+)
 
 ## Generate actions in the 'action' folder
 # add_action_files(
@@ -67,10 +73,11 @@ find_package(catkin REQUIRED COMPONENTS
 # )
 
 ## Generate added messages and services with any dependencies listed here
-# generate_messages(
-#   DEPENDENCIES
-#   std_msgs  # Or other packages containing msgs
-# )
+generate_messages(
+  DEPENDENCIES
+  sensor_msgs
+
+)
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
@@ -104,7 +111,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES rigid2d
-  CATKIN_DEPENDS roscpp
+  CATKIN_DEPENDS roscpp std_msgs message_runtime sensor_msgs tf nav_msgs tf2 tf2_ros
 #  DEPENDS system_lib
 )
 
@@ -122,6 +129,7 @@ include_directories(
 ## Declare a C++ library
 add_library(${PROJECT_NAME}
   src/${PROJECT_NAME}.cpp
+  src/diff_drive.cpp
 )
 
 ## Add cmake target dependencies of the library
@@ -132,7 +140,9 @@ add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EX
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-#add_executable(${PROJECT_NAME} src/${PROJECT_NAME}.cpp)
+add_executable(odometer src/odometer.cpp)
+add_executable(fake_turtle src/fake_turtle.cpp)
+
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -142,10 +152,20 @@ add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EX
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
-#add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(odometer ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(fake_turtle ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(${PROJECT_NAME}
+  ${catkin_LIBRARIES}
+)
+target_link_libraries(odometer
+  ${PROJECT_NAME}
+  ${catkin_LIBRARIES}
+)
+target_link_libraries(fake_turtle
+  ${PROJECT_NAME}
   ${catkin_LIBRARIES}
 )
 
@@ -166,6 +186,7 @@ target_link_libraries(${PROJECT_NAME}
 ## Mark executables for installation
 ## See http://docs.ros.org/melodic/api/catkin/html/howto/format1/building_executables.html
 install(TARGETS ${PROJECT_NAME}
+  odometer
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 

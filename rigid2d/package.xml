@@ -53,6 +53,15 @@
   <build_export_depend>roscpp</build_export_depend>
   <exec_depend>roscpp</exec_depend>
   <build_depend>catch_ros</build_depend>
+  <depend>message_runtime</depend>
+  <build_depend>message_generation</build_depend>
+  <build_export_depend>std_msgs</build_export_depend>
+  <depend>sensor_msgs</depend>
+  <depend>tf</depend>
+  <depend>nav_msgs</depend>
+  <depend>tf2</depend>
+  <depend>tf2_ros</depend>
+  <exec_depend>nuturtle_description</exec_depend>
 
 
   <!-- The export tag contains other, unspecified, tags -->
