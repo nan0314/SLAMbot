@@ -108,4 +108,8 @@ namespace rigid2d{
         return y;
     }
 
+    std::vector<double> DiffDrive::getEncoders(){
+        return prev_angles;
+    }
+
 }

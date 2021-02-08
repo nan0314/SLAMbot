@@ -53,6 +53,10 @@
   <build_depend>rospy</build_depend>
   <build_depend>sensor_msgs</build_depend>
   <build_depend>std_msgs</build_depend>
+  <depend>message_generation</depend>
+  <depend>message_runtime</depend>
+  <depend>nuturtlebot</depend>
+  <depend>rigid2d</depend>
   <build_export_depend>roscpp</build_export_depend>
   <build_export_depend>rospy</build_export_depend>
   <build_export_depend>sensor_msgs</build_export_depend>

@@ -75,6 +75,10 @@ namespace rigid2d{
         /// \return value of private member y
         double getY();
 
+        /// \brief accessor function for private member prev_angles
+        /// \return value of private member prev_angles
+        std::vector<double> getEncoders();
+
     };
 
 }

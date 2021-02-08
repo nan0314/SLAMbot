@@ -109,8 +109,8 @@ generate_messages(
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-#  INCLUDE_DIRS include
-#  LIBRARIES rigid2d
+  INCLUDE_DIRS include
+  LIBRARIES rigid2d
   CATKIN_DEPENDS roscpp std_msgs message_runtime sensor_msgs tf nav_msgs tf2 tf2_ros
 #  DEPENDS system_lib
 )
@@ -187,6 +187,7 @@ target_link_libraries(fake_turtle
 ## See http://docs.ros.org/melodic/api/catkin/html/howto/format1/building_executables.html
 install(TARGETS ${PROJECT_NAME}
   odometer
+  fake_turtle
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
