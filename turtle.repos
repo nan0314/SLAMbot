@@ -1,0 +1,9 @@
+repositories:
+  src/nuturtlebot:
+    type: git
+    url: https://github.com/ME495-Navigation/nuturtlebot.git
+    version: master
+  src/turtlebot3-navigation:
+    type: git
+    url: https://github.com/ME495-Navigation/assignment-nan0314.git
+    version: devel
