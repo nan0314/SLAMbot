@@ -1,6 +1,5 @@
 #include "rigid2d/diff_drive.hpp"
 #include "rigid2d/rigid2d.hpp"
-#include <iostream>
 
 namespace rigid2d{
     DiffDrive::DiffDrive(){
@@ -69,15 +68,16 @@ namespace rigid2d{
     }
 
     std::vector<double> DiffDrive::vel_update(rigid2d::Twist2D desired_twist){
-        // Convert to world frame dq 
 
-        std::vector<double> wheel_change = twist2control(desired_twist);
+        // Find dq_b
         Transform2D Tbb = integrateTwist(desired_twist);
         Twist2D d_qb = Twist2D(asin(Tbb.getStheta()),Tbb.getX(),Tbb.getY());
 
         // Convert to world frame dq 
         auto dq = Transform2D(th)(d_qb);
 
+        // update wheel angles
+        std::vector<double> wheel_change = twist2control(desired_twist);
         prev_angles[0] += wheel_change[0];
         prev_angles[1] += wheel_change[1];
 
@@ -85,7 +85,7 @@ namespace rigid2d{
         th+=dq.dth;
         x+=dq.dx;
         y+=dq.dy;
-        // th = normalize_angle(th);
+        th = normalize_angle(th);
 
         return prev_angles;
     }
@@ -108,12 +108,4 @@ namespace rigid2d{
         return y;
     }
 
-}
-
-int main(){
-
-    using namespace rigid2d;
-
-    std::cout<<rad2deg(normalize_angle(deg2rad(450))) << std::endl;
-    return 0;
 }

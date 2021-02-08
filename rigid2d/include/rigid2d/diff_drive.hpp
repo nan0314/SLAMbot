@@ -51,17 +51,28 @@ namespace rigid2d{
         /// \return robot body twist
         rigid2d::Twist2D update(const std::vector<double> phi);
 
-        std::vector<double> vel_update(rigid2d::Twist2D dphi_twist);
+        /// \brief Update the configuration of the robot, given velocities [dtheta,dx,dy]
+        /// \param desired_twist robot velocities [dtheta,dx,dy]
+        /// \return resulting wheel angles of robot
+        std::vector<double> vel_update(rigid2d::Twist2D desired_twist);
 
 
-
-        /// \brief reset configuration to [th,x,y] = [0,0,0]
+        /// \brief reset robot configuration to user specified configuration [th,x,y]
+        /// \param th value to reset private member th to
+        /// \param x value to reset private member x to
+        /// \param y value to reset private member y to 
         void set_pose(double th, double x, double y);
 
+        /// \brief accessor function to get private member th
+        /// \return value of private member th
         double getTh();
 
+        /// \brief accessor function for private member x
+        /// \return value of private member x
         double getX();
 
+        /// \brief accessor function for pivate member y
+        /// \return value of private member y
         double getY();
 
     };

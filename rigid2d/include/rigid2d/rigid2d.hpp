@@ -47,6 +47,9 @@ namespace rigid2d
         return rad*180/PI;
     }
 
+    /// \brief turns any angle into the equivalent one between -pi and pi
+    /// \param rad any angle in radians
+    /// \return equivalent angle in radians between -pi and pi
     double normalize_angle(double rad);
 
     /// static_assertions test compile time assumptions.

@@ -142,7 +142,6 @@ add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EX
 ## The recommended prefix ensures that target names across packages don't collide
 add_executable(odometer src/odometer.cpp)
 add_executable(fake_turtle src/fake_turtle.cpp)
-add_executable(diff_drive src/diff_drive)
 
 
 ## Rename C++ executable without prefix
@@ -166,10 +165,6 @@ target_link_libraries(odometer
   ${catkin_LIBRARIES}
 )
 target_link_libraries(fake_turtle
-  ${PROJECT_NAME}
-  ${catkin_LIBRARIES}
-)
-target_link_libraries(diff_drive
   ${PROJECT_NAME}
   ${catkin_LIBRARIES}
 )

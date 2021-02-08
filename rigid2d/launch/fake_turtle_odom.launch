@@ -2,6 +2,7 @@
   
   <arg name="urdf_file" default="$(find xacro)/xacro '$(find nuturtle_description)/urdf/turtlebot3_burger.urdf.xacro'"/>
   <param name="robot_description" command="$(arg urdf_file)"/>
+  <param name="frequency" value = "100"/>
   <rosparam file="$(find nuturtle_description)/config/diff_params.yaml" />  
 
   <node pkg="rigid2d" name="ody" type="odometer" output = "screen">
