@@ -28,8 +28,7 @@
 // Constants
 ///////////////////////////////
 
-const float MAX_TRANS_VEL = 0.22;       // Maximum tranlational velocity in m/s
-const float MAX_ANG_VEL = 2.84;         // Maximum angular velocity in rad/s
+const float MAX_ANG_VEL = 6.67;         // Maximum angular velocity in rad/s
 
 ///////////////////////////////
 // Global Varibles
@@ -59,15 +58,19 @@ void velCallback(const geometry_msgs::Twist::ConstPtr& msg){
     vector<double> wheel_cmds = turtle.twist2control(velocity_twist);
 
     // Convert wheel commands to integer values between -256 and 256
-    wheel_cmds[0] = wheel_cmds[0]/MAX_ANG_VEL*255;
-    wheel_cmds[1] = wheel_cmds[1]/MAX_ANG_VEL*255;
+    wheel_cmds[0] = int(wheel_cmds[0]/MAX_ANG_VEL*255);
+    wheel_cmds[1] = int(wheel_cmds[1]/MAX_ANG_VEL*255);
 
     // Check for saturation
     if (wheel_cmds[0] > 255){
         wheel_cmds[0] = 255;
     } else if (wheel_cmds[1] > 255){
         wheel_cmds[1] = 255;
-    }
+    } else if (wheel_cmds[0] < -255){
+        wheel_cmds[0] = -255;
+    } else if (wheel_cmds[1] < -255){
+        wheel_cmds[1] = -255;
+    } 
 
     // Publish wheel command
     nuturtlebot::WheelCommands cmd;

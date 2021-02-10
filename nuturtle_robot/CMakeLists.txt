@@ -8,6 +8,7 @@ project(nuturtle_robot)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
+  catch_ros
   rigid2d
   roscpp
   rospy
@@ -59,11 +60,10 @@ find_package(catkin REQUIRED COMPONENTS
 # )
 
 ## Generate services in the 'srv' folder
-# add_service_files(
-#   FILES
-#   Service1.srv
-#   Service2.srv
-# )
+add_service_files(
+  FILES
+  control.srv
+)
 
 ## Generate actions in the 'action' folder
 # add_action_files(
@@ -73,11 +73,10 @@ find_package(catkin REQUIRED COMPONENTS
 # )
 
 ## Generate added messages and services with any dependencies listed here
-# generate_messages(
-#   DEPENDENCIES
-#   sensor_msgs
-#   std_msgs
-# )
+generate_messages(
+  DEPENDENCIES
+  std_msgs
+)
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
@@ -111,7 +110,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES nuturtle_robot
-  CATKIN_DEPENDS nuturtlebot rigid2d roscpp rospy sensor_msgs std_msgs
+  CATKIN_DEPENDS nuturtlebot rigid2d roscpp rospy sensor_msgs std_msgs message_runtime
 #  DEPENDS system_lib
 )
 
@@ -140,6 +139,8 @@ include_directories(
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
 add_executable(turtle_interface src/turtle_interface.cpp)
+add_executable(follow_circle src/follow_circle.cpp)
+
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -150,9 +151,15 @@ add_executable(turtle_interface src/turtle_interface.cpp)
 ## Add cmake target dependencies of the executable
 ## same as for the library above
 add_dependencies(turtle_interface ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(follow_circle ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(turtle_interface
+  rigid2d
+  ${catkin_LIBRARIES}
+)
+
+target_link_libraries(follow_circle
   rigid2d
   ${catkin_LIBRARIES}
 )
@@ -174,6 +181,9 @@ target_link_libraries(turtle_interface
 ## Mark executables for installation
 ## See http://docs.ros.org/melodic/api/catkin/html/howto/format1/building_executables.html
 install(TARGETS turtle_interface
+  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+install(TARGETS follow_circle
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
@@ -208,6 +218,18 @@ install(TARGETS turtle_interface
 # if(TARGET ${PROJECT_NAME}-test)
 #   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
 # endif()
+
+catch_add_rostest_node(turtle_interface_test
+	test/turtle_interface_test.cpp
+)
+target_link_libraries(turtle_interface_test
+	${catkin_LIBRARIES}
+)
+
+if (CATKIN_ENABLE_TESTING)
+  find_package(rostest REQUIRED)
+  add_rostest(test/turtle_interface.test)
+endif()
 
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
