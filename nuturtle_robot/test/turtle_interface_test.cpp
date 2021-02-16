@@ -27,7 +27,7 @@ TEST_CASE("trans_vel","[trans_vel]") {
     // a latched publisher is used to account for the case that we publish
     // this message before the node in turtle_interface can subscribe to the
     // FranklinTheTurtle/cmd_vel topic
-    const auto pub = n.advertise<geometry_msgs::Twist>("FranklinTheTurtle/cmd_vel",1000,true);
+    const auto pub = n.advertise<geometry_msgs::Twist>("cmd_vel",1000,true);
     geometry_msgs::Twist out;
     out.linear.x = 0.033;
     pub.publish(out);
@@ -59,7 +59,7 @@ TEST_CASE("rot_vel","[rot_vel]") {
     // a latched publisher is used to account for the case that we publish
     // this message before the node in turtle_interface can subscribe to the
     // FranklinTheTurtle/cmd_vel topic
-    const auto pub = n.advertise<geometry_msgs::Twist>("FranklinTheTurtle/cmd_vel",1000,true);
+    const auto pub = n.advertise<geometry_msgs::Twist>("cmd_vel",1000,true);
     geometry_msgs::Twist out;
     out.angular.z = 0.4125;
     pub.publish(out);

@@ -9,6 +9,7 @@ project(nuturtle_robot)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
   catch_ros
+  nuturtlebot
   rigid2d
   roscpp
   rospy
@@ -16,7 +17,6 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   message_runtime
   message_generation
-  nuturtlebot
 )
 
 ## System dependencies are found with CMake's conventions
@@ -110,7 +110,7 @@ generate_messages(
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES nuturtle_robot
-  CATKIN_DEPENDS nuturtlebot rigid2d roscpp rospy sensor_msgs std_msgs message_runtime
+  CATKIN_DEPENDS rigid2d nuturtlebot roscpp rospy sensor_msgs std_msgs message_runtime
 #  DEPENDS system_lib
 )
 
@@ -208,6 +208,8 @@ install(TARGETS follow_circle
 #   # myfile2
 #   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 # )
+
+install(DIRECTORY launch/ DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/launch)
 
 #############
 ## Testing ##

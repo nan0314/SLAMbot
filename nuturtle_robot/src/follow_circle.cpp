@@ -67,7 +67,7 @@ int main(int argc, char **argv)
     ros::ServiceServer service = n.advertiseService("control", control);
 
     // set up publishers and subscribers
-    vel_pub = n.advertise<geometry_msgs::Twist>("FranklinTheTurtle/cmd_vel", frequency);
+    vel_pub = n.advertise<geometry_msgs::Twist>("cmd_vel", frequency);
 
     // initialize message
     geometry_msgs::Twist out;

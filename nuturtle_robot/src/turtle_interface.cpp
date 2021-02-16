@@ -36,8 +36,10 @@ const float MAX_ANG_VEL = 6.67;         // Maximum angular velocity in rad/s
 
 static ros::Publisher vel_pub;         // Odometry state publisher
 static ros::Publisher joint_pub;
-static double frequency = 100;          // Ros loop frequency
+static int frequency = 100;          // Ros loop frequency
 static rigid2d::DiffDrive turtle;       // DiffDrive object to track robot configuration  
+static std::string left_wheel_joint;    // Name of left wheel joint
+static std::string right_wheel_joint;   // Name of right wheel joint
 
 
 
@@ -58,8 +60,8 @@ void velCallback(const geometry_msgs::Twist::ConstPtr& msg){
     vector<double> wheel_cmds = turtle.twist2control(velocity_twist);
 
     // Convert wheel commands to integer values between -256 and 256
-    wheel_cmds[0] = int(wheel_cmds[0]/MAX_ANG_VEL*255);
-    wheel_cmds[1] = int(wheel_cmds[1]/MAX_ANG_VEL*255);
+    wheel_cmds[0] = wheel_cmds[0]/MAX_ANG_VEL*255;
+    wheel_cmds[1] = wheel_cmds[1]/MAX_ANG_VEL*255;
 
     // Check for saturation
     if (wheel_cmds[0] > 255){
@@ -90,8 +92,8 @@ void sensorCallback(const nuturtlebot::SensorData msg){
     // Convert encoder data to radians (12 bit absolute encoder-- 4096increments/2pi)
     vector<double> encoder_rad;
 
-    double left_rad = msg.left_encoder/4096*2*rigid2d::PI;
-    double right_rad = msg.right_encoder/4096*2*rigid2d::PI;
+    double left_rad = double(msg.left_encoder)/4096.0*2*rigid2d::PI/10;
+    double right_rad = double(msg.right_encoder)/4096.0*2*rigid2d::PI/10;
     encoder_rad.push_back(left_rad);
     encoder_rad.push_back(right_rad);
 
@@ -99,8 +101,10 @@ void sensorCallback(const nuturtlebot::SensorData msg){
     sensor_msgs::JointState js;
     js.header.stamp = ros::Time::now();
 
+
+
     // publish to joint state topic (update odometry)
-    js.name = {"wheel_left_joint", "wheel_right_joint"};
+    js.name = {left_wheel_joint, right_wheel_joint};
     js.position = {left_rad, right_rad};
     vector<double> prev = turtle.getEncoders();
     js.velocity = {left_rad-prev[0],right_rad-prev[1]};
@@ -118,11 +122,14 @@ int main(int argc, char **argv)
     ros::init(argc, argv, "turtle_interface");
     ros::NodeHandle n;
 
+    ros::param::get("~left_wheel_joint",left_wheel_joint);
+    ros::param::get("~right_wheel_joint",right_wheel_joint);
+
     // set up publishers and subscribers
     vel_pub = n.advertise<nuturtlebot::WheelCommands>("wheel_cmd", frequency);
-    joint_pub = n.advertise<sensor_msgs::JointState>("joint_states", frequency);
-    ros::Subscriber vel_sub = n.subscribe("FranklinTheTurtle/cmd_vel", frequency, velCallback);
-    ros::Subscriber sensor_sub = n.subscribe("sensor_data", frequency, sensorCallback);
+    joint_pub = n.advertise<sensor_msgs::JointState>("joint_states", 500);
+    ros::Subscriber vel_sub = n.subscribe("cmd_vel", 10, velCallback);
+    ros::Subscriber sensor_sub = n.subscribe("sensor_data", 10, sensorCallback);
 
     // set publishing frequency
     ros::Rate loop_rate(frequency);
