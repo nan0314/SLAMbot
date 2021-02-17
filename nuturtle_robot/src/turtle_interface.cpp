@@ -1,16 +1,13 @@
 /// \file
-/// \brief TODO
+/// \brief implements low-level control and sensor routines in ROS
 ///
 /// PARAMETERS:
-///     frequency (double): ROS loop frequency
-///     wheel_base (double): distance between wheels on diffdrive robot
-///     wheel_radius (double): radius of wheels on diffdrive robot
 ///     left_wheel_joint (string): Name of left wheel joint frame
 ///     right_wheel_joint (string): Name of right wheel joint frame
 /// PUBLISHES:
 ///     joint_states (sensor_msgs/JointState): messages hold Joint State for each non-fixed joint in the robot
 /// SUBSCRIBES:
-///     turtle1/cmd_vel (geometry_msgs/Twist): angular/linear velocity commands
+///     cmd_vel (geometry_msgs/Twist): angular/linear velocity commands
 /// SERVICES:
 ///     No services
 
@@ -34,14 +31,14 @@ const float MAX_ANG_VEL = 6.67;         // Maximum angular velocity in rad/s
 // Global Varibles
 ///////////////////////////////
 
-static ros::Publisher vel_pub;         // Odometry state publisher
-static ros::Publisher joint_pub;
-static int frequency = 100;          // Ros loop frequency
+static ros::Publisher vel_pub;          // Wheel Command  publisher
+static ros::Publisher joint_pub;        // Joint State publisher
+static int frequency = 100;             // Ros loop frequency
 static rigid2d::DiffDrive turtle;       // DiffDrive object to track robot configuration  
 static std::string left_wheel_joint;    // Name of left wheel joint
 static std::string right_wheel_joint;   // Name of right wheel joint
-static bool first = true;
-static std::vector<double> init;
+static bool first = true;               // True if sensorCallback has not been called for the first time
+static std::vector<double> init;        // Holds the initial encoder counts
 
 /// \brief reads in a twist and converts it to specific wheel commands that make the turtlebot move
 /// \param msg geometry_msg/Twist pointer holding velocity command

@@ -1,18 +1,15 @@
 /// \file
-/// \brief TODO
+/// \brief publishes commands that let the robot drive in a circle of a specified radius at a specified speed
 ///
 /// PARAMETERS:
-///     frequency (double): ROS loop frequency
-///     wheel_base (double): distance between wheels on diffdrive robot
-///     wheel_radius (double): radius of wheels on diffdrive robot
-///     left_wheel_joint (string): Name of left wheel joint frame
-///     right_wheel_joint (string): Name of right wheel joint frame
+///     speed (double): specified speed
+///     radius (double): specified radius
 /// PUBLISHES:
-///     joint_states (sensor_msgs/JointState): messages hold Joint State for each non-fixed joint in the robot
+///     cmd_vel (geometry_msgs/Twist): angular/linear velocity commands
 /// SUBSCRIBES:
-///     turtle1/cmd_vel (geometry_msgs/Twist): angular/linear velocity commands
+///     No subscribers
 /// SERVICES:
-///     No services
+///     control (nuturtle_robot/control): causes the robot to travel either clockwise, counter clockwise, or stop
 
 #include <ros/ros.h>
 #include <geometry_msgs/Twist.h>
