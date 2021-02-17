@@ -47,8 +47,8 @@ namespace rigid2d{
         dphi.push_back(phi[1]-prev_angles[1]);
 
         // Calculate dq_b
-        double dth = -dphi[0]*r/2/wb + dphi[1]*r/2/wb;
-        double dx = dphi[0]*r/2 + dphi[1]*r/2;
+        double dth = -dphi[0]*r/2.0/wb + dphi[1]*r/2.0/wb;
+        double dx = dphi[0]*r/2.0 + dphi[1]*r/2.0;
         Twist2D dphi_twist = Twist2D(dth,dx,0);
 
         Transform2D Tbb = integrateTwist(dphi_twist);

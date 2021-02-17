@@ -1,13 +1,14 @@
 <launch>
   
   <arg name="circle" default="true" doc="allows the user to specify the mode of the robot"/>
+  <rosparam file="$(find nuturtle_description)/config/diff_params.yaml" />  
 
   <arg name="robot" default="localhost" doc="allows the user to specify the hostname of the turtlebot"/>
 
   <group if='$(arg circle)'>
     <node pkg="nuturtle_robot" type="follow_circle" name="fc">
-      <param name="radius" value="50.0"/>
-      <param name="speed" value="1.0"/>  
+      <param name="radius" value=".25"/>
+      <param name="speed" value=".16"/>  
     </node>
   </group>
 

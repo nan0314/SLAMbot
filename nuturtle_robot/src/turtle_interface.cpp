@@ -40,8 +40,8 @@ static int frequency = 100;          // Ros loop frequency
 static rigid2d::DiffDrive turtle;       // DiffDrive object to track robot configuration  
 static std::string left_wheel_joint;    // Name of left wheel joint
 static std::string right_wheel_joint;   // Name of right wheel joint
-
-
+static bool first = true;
+static std::vector<double> init;
 
 /// \brief reads in a twist and converts it to specific wheel commands that make the turtlebot move
 /// \param msg geometry_msg/Twist pointer holding velocity command
@@ -88,20 +88,24 @@ void velCallback(const geometry_msgs::Twist::ConstPtr& msg){
 void sensorCallback(const nuturtlebot::SensorData msg){
     
     using std::vector;
+    if (first){
+        init.push_back(msg.left_encoder);
+        init.push_back(msg.right_encoder);
+        first = false;
+
+    }
 
     // Convert encoder data to radians (12 bit absolute encoder-- 4096increments/2pi)
     vector<double> encoder_rad;
 
-    double left_rad = double(msg.left_encoder)/4096.0*2*rigid2d::PI/10;
-    double right_rad = double(msg.right_encoder)/4096.0*2*rigid2d::PI/10;
+    double left_rad = double(msg.left_encoder-init[0])/4096.0*2.0*rigid2d::PI;
+    double right_rad = double(msg.right_encoder-init[1])/4096.0*2.0*rigid2d::PI;
     encoder_rad.push_back(left_rad);
     encoder_rad.push_back(right_rad);
 
     // Initialize joint state message
     sensor_msgs::JointState js;
     js.header.stamp = ros::Time::now();
-
-
 
     // publish to joint state topic (update odometry)
     js.name = {left_wheel_joint, right_wheel_joint};

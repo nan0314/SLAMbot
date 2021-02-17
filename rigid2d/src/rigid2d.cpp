@@ -274,8 +274,8 @@ namespace rigid2d {
         } else
         {
             Vector2D bs;
-            bs.x = -V.dx/V.dth;
-            bs.y = V.dy/V.dth;
+            bs.y = -V.dx/V.dth;
+            bs.x = V.dy/V.dth;
             auto T_bs = Transform2D(bs);        // Translate to/from center of rotations
             auto T_ssp = Transform2D(V.dth);    // Rotate about center of rotation
 
