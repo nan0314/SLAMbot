@@ -7,6 +7,9 @@ roslaunch nuturtle_robot odom_teleop.launch robot:=FranklinTheTurtle.local circl
 roslaunch nuturtle_robot odom_teleop.launch robot:=FranklinTheTurtle.local circle:=true
 ```
 
+In case of faulty embeds link to google folder with gifs: 
+https://drive.google.com/file/d/1nOc-BzaVfCCQev37koYSX3fmLvrWme38/view?usp=sharing
+
 Final Location in format (th,x,y)
 
 Experiment 1:
