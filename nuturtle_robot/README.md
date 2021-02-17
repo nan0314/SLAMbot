@@ -11,9 +11,9 @@ Final Location in format (th,x,y)
 
 Experiment 1:
 
-![Video](https://drive.google.com/uc?export=view&id=1G5f7t2TROddBYKYC4nAr3XS98TP48JIc)
+![Video](https://drive.google.com/uc?export=view&id=1KDQdL42oxz6DSxhZ3_OX4sjWGxMZu_dl)
 
-![Screen Capture](https://drive.google.com/uc?expert=view&id=1U-PW0LDYVcQC6YnxOTa1a93SxeG1S2ds)
+![Screen Capture](https://drive.google.com/uc?export=view&id=1U-PW0LDYVcQC6YnxOTa1a93SxeG1S2ds)
 
 
 Final Location: (-0.0459,0.0287,0.0113)
@@ -30,7 +30,7 @@ Final Location: (0.0025,-0.0011,0.0013)
 
 Experiment 3:
 
-![Video](https://drive.google.com/uc?export=view&id=1nOc-BzaVfCCQev37koYSX3fmLvrWme38)
+![Video](https://drive.google.com/uc?export=view&id=17JNR4s0pC8VR8kCKUkX7Bvw5-gIqXRyo)
 
 ![Screen Capture](https://drive.google.com/uc?export=view&id=17JNR4s0pC8VR8kCKUkX7Bvw5-gIqXRyo)
 
