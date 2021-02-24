@@ -61,7 +61,7 @@ void velCallback(const geometry_msgs::Twist::ConstPtr& msg){
 int main(int argc, char **argv)
 {
     // initialize node/node handles
-    ros::init(argc, argv, "fake_turtle");
+    ros::init(argc, argv, "tube_world");
     ros::NodeHandle n;
 
     // read parameters from parameter server
