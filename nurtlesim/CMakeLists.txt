@@ -12,6 +12,7 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   nav_msgs
   sensor_msgs
+  visualization_msgs
   catch_ros
   message_runtime
   message_generation
@@ -70,11 +71,9 @@ find_package(catkin REQUIRED COMPONENTS
 # )
 
 ## Generate added messages and services with any dependencies listed here
-generate_messages(
-  DEPENDENCIES
-  sensor_msgs
-
-)
+#generate_messages(
+#  DEPENDENCIES
+#)
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
@@ -108,7 +107,7 @@ generate_messages(
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES nurtlesim
-  CATKIN_DEPENDS roscpp rigid2d std_msgs message_runtime sensor_msgs nav_msgs
+  CATKIN_DEPENDS roscpp rigid2d std_msgs message_runtime sensor_msgs nav_msgs visualization_msgs
 #  DEPENDS system_lib
 )
 

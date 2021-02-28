@@ -59,6 +59,7 @@
   <depend>sensor_msgs</depend>
   <depend>nav_msgs</depend>
   <depend>rigid2d</depend>
+  <depend>visualization_msgs</depend>
   <!-- <depend>tf2</depend> -->
   <!-- <depend>tf2_ros</depend> -->
   <exec_depend>xacro</exec_depend>

@@ -18,17 +18,60 @@
 #include <nav_msgs/Odometry.h>
 #include <sensor_msgs/JointState.h>
 #include <geometry_msgs/Twist.h>
+#include <tf2_ros/transform_broadcaster.h>
+#include <tf2/LinearMath/Quaternion.h>
 #include "rigid2d/diff_drive.hpp"
+#include <visualization_msgs/Marker.h>
+#include <visualization_msgs/MarkerArray.h>
+#include <nav_msgs/Path.h>
 #include <vector>
 #include <string>
+#include <random>
+#include <cmath>
 
 static ros::Publisher odom_pub;         // Odometry state publisher
+static ros::Publisher tube_pub;         // Publishes tube locations
+static ros::Publisher path_pub;
 static double frequency;                // Ros loop frequency
+static nav_msgs::Path path;
 static rigid2d::DiffDrive turtle;       // DiffDrive object to track robot configuration  
-static std::string odom_frame_id;       // Name of odometry/world frame
-static std::string body_frame_id;       // Name of robot/body frame
+static std::string world_frame_id;       // Name of odometry/world frame
+static std::string turtle_frame_id;       // Name of robot/body frame
 static std::string left_wheel_joint;    // Name of left wheel joint
 static std::string right_wheel_joint;   // Name of right wheel joint
+static std::normal_distribution<double> wheel_slip;
+static std::normal_distribution<double> trans_noise;
+static std::normal_distribution<double> rot_noise;
+static std::normal_distribution<double> tube_noise;
+static double max_range;
+static double tube_var;
+static double trans_var;
+static double rot_var;
+static double slip_max;
+static double tube_radius;
+static std::vector<double> tube_x, tube_y;
+
+
+std::mt19937 & get_random()
+ {
+     // static variables inside a function are created once and persist for the remainder of the program
+     static std::random_device rd{}; 
+     static std::mt19937 mt{rd()};
+     // we return a reference to the pseudo-random number genrator object. This is always the
+     // same object every time get_random is called
+     return mt;
+ }
+
+
+bool inRange(geometry_msgs::Pose turtle_pose, geometry_msgs::Pose tube_pose){
+    double dist_squared = pow((turtle_pose.position.x-tube_pose.position.x),2) + pow(turtle_pose.position.y-tube_pose.position.y,2);
+    double dist = pow(dist_squared,0.5);
+    if (dist < max_range){
+        return true;
+    } else {
+        return false;
+    }
+}
 
 
 /// \brief recieve velocity command and cause fake_turtle to move 
@@ -39,21 +82,119 @@ void velCallback(const geometry_msgs::Twist::ConstPtr& msg){
     rigid2d::Twist2D desired_twist;
     std::vector<double> cmd;
     sensor_msgs::JointState js;
+    
+    // Add Gaussian noise to the velocity command
+    double ang_vel = msg->angular.z + rot_noise(get_random());
+    double trans_vel = msg->linear.x + trans_noise(get_random());
 
     // Update fake turtle based on commanded frequency
     auto dt = 1.0/frequency;
-    desired_twist.dth = msg->angular.z*dt;
-    desired_twist.dx = msg->linear.x*dt;
+    desired_twist.dth = ang_vel*dt;
+    desired_twist.dx = trans_vel*dt;
     desired_twist.dy = 0;
 
     cmd = turtle.vel_update(desired_twist);
 
+    // Calculate wheel_slip
+    std::vector<double> omega = turtle.twist2control(desired_twist); // Get wheel speed
+    double eta = wheel_slip(get_random());
+
     // publish to joint state topic (update odometry)
     js.header.stamp = ros::Time::now();
     js.name = {left_wheel_joint, right_wheel_joint};
-    js.position = {cmd[0], cmd[1]};
+    js.position = {cmd[0] + eta*omega[0] , cmd[1] + eta*omega[1]};
 
     odom_pub.publish(js);
+
+    ////////////////////////////////
+    // Publish to navigation path
+    ////////////////////////////////
+
+    // Get robot pose
+    geometry_msgs::PoseStamped pose_stamp;
+    geometry_msgs::Pose current_pose;
+    current_pose.position.x = turtle.getX();
+    current_pose.position.y = turtle.getY();
+    current_pose.orientation.z = turtle.getTh();
+    pose_stamp.pose = current_pose;
+
+    // Append pose to path
+    path.poses.push_back(pose_stamp);
+    path_pub.publish(path);
+
+
+    ////////////////////////////////
+    // Publish Tube Locations
+    ////////////////////////////////
+
+    // Set up MarkerArray
+    visualization_msgs::Marker tube;
+    geometry_msgs::Pose tube_pose;
+    visualization_msgs::MarkerArray tube_array;
+
+    for (int i = 0; i<tube_x.size(); i++){
+
+        // Get the tube location
+        tube_pose.position.x = tube_x[i] + tube_noise(get_random());
+        tube_pose.position.y = tube_y[i] + tube_noise(get_random());
+
+        // Set up the marker msg for the tube;
+        tube.header.stamp = ros::Time::now();
+        tube.header.frame_id = world_frame_id;
+        tube.ns = "real";
+        tube.id = i;
+        tube.type = visualization_msgs::Marker::CYLINDER;
+        tube.pose = tube_pose;
+        tube.scale.x = 2*tube_radius;
+        tube.scale.y = 2*tube_radius;
+        tube.scale.z = 1;
+        tube.color.r = 54;
+        tube.color.g = 117;
+        tube.color.b = 136;
+        tube.color.a = 1;
+
+        if (inRange(current_pose,tube_pose)){
+            tube.action = 0;
+        } else {
+            tube.action = 2;
+        }
+
+        // Append it to Markers message
+        tube_array.markers.push_back(tube);
+
+    }
+
+    tube_pub.publish(tube_array);
+
+
+    ////////////////////////////////
+    // Broadcast transform
+    ////////////////////////////////
+
+    //since all odometry is 6DOF we'll need a quaternion created from yaw
+    tf2::Quaternion odom_q;
+    odom_q.setRPY(0, 0, turtle.getTh());
+
+    // initialize tf2 transform broadcaster
+    static tf2_ros::TransformBroadcaster br;
+    geometry_msgs::TransformStamped transformStamped;    
+    transformStamped.header.stamp = ros::Time::now();
+    transformStamped.header.frame_id = world_frame_id;
+    transformStamped.child_frame_id = turtle_frame_id;
+
+    // set translational information
+    transformStamped.transform.translation.x = turtle.getX();
+    transformStamped.transform.translation.y = turtle.getY();
+    transformStamped.transform.translation.z = 0.0;
+    
+    // set rotational information
+    transformStamped.transform.rotation.x = odom_q.x();
+    transformStamped.transform.rotation.y = odom_q.y();
+    transformStamped.transform.rotation.z = odom_q.z();
+    transformStamped.transform.rotation.w = odom_q.w();
+
+    // broadcast transform to tf2
+    br.sendTransform(transformStamped);
 
     return;
 }
@@ -65,24 +206,83 @@ int main(int argc, char **argv)
     ros::NodeHandle n;
 
     // read parameters from parameter server
-    double wb,r;
-
+    double wb, r;
+    std::vector<double> covar1, covar2;
+    
     ros::param::get("~left_wheel_joint",left_wheel_joint);
     ros::param::get("~right_wheel_joint",right_wheel_joint);
     ros::param::get("~wheel_base",wb);
     ros::param::get("~wheel_radius",r);
+    n.getParam("world_frame_id",world_frame_id);
+    n.getParam("turtle_frame_id",turtle_frame_id);
     n.getParam("frequency",frequency);
+    n.getParam("tube_var",tube_var);
+    n.getParam("trans_var",trans_var);
+    n.getParam("rot_var",rot_var);
+    n.getParam("slip_max",slip_max);
+    n.getParam("covar1",covar1);
+    n.getParam("covar2",covar2);
+    n.getParam("tube_x",tube_x);
+    n.getParam("tube_y",tube_y);
+    n.getParam("tube_radius",tube_radius);
+    n.getParam("max_range",max_range);
+
+    // Set up normal distributions
+    std::normal_distribution<double> d(0.0,slip_max);
+    wheel_slip = d;
+    std::normal_distribution<double> d1(0.0,trans_var);
+    trans_noise = d1;
+    std::normal_distribution<double> d2(0.0,rot_var);
+    rot_noise = d2;
+    std::normal_distribution<double> d3(0.0,tube_var);
+    tube_noise = d3;
+    
     wb/=2;
 
     // set up publishers and subscribers
     odom_pub = n.advertise<sensor_msgs::JointState>("joint_states", frequency);
-    ros::Subscriber vel_sub = n.subscribe("turtle1/cmd_vel", frequency, velCallback);
+    tube_pub = n.advertise<visualization_msgs::MarkerArray>("fake_sensor",frequency,true);
+    path_pub = n.advertise<nav_msgs::Path>("real_path",frequency);
+    ros::Subscriber vel_sub = n.subscribe("turtle1/cmd_vel", 10, velCallback);
 
     // set publishing frequency
     ros::Rate loop_rate(frequency);
 
     // Initialize differintial drive robot
     turtle = rigid2d::DiffDrive(wb,r);
+
+    // Set Path header
+    path.header.stamp = ros::Time::now();
+    path.header.frame_id = world_frame_id;
+
+    // Set up MarkerArray
+    visualization_msgs::Marker tube;
+    geometry_msgs::Pose tube_pose;
+    visualization_msgs::MarkerArray tube_array;
+
+    for (int i = 0; i<tube_x.size(); i++){
+
+        // Get the tube location
+        tube_pose.position.x = tube_x[i];
+        tube_pose.position.y = tube_y[i];
+
+        // Set up the marker msg for the tube;
+        tube.header.stamp = ros::Time::now();
+        tube.header.frame_id = world_frame_id;
+        tube.ns = "real";
+        tube.id = i;
+        tube.type = 3;
+        tube.action = 0;
+        tube.pose = tube_pose;
+        // tube.scale.x = 2*tube_radius;
+        // tube.scale.y = 2*tube_radius;
+        // tube.scale.z = 1;
+
+        // Append it to Markers message
+        tube_array.markers.push_back(tube);
+
+    }
+    tube_pub.publish(tube_array);
 
     int count = 0;
     while (ros::ok())

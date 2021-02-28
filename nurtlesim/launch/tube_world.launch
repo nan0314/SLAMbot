@@ -1,9 +1,10 @@
 <launch>
   
-  <arg name="urdf_file" default="$(find xacro)/xacro '$(find nuturtle_description)/urdf/turtlebot3_burger.urdf.xacro'"/>
-  <param name="robot_description" command="$(arg urdf_file)"/>
-  <param name="frequency" value = "100"/>
+  <param name="frequency" value = "10"/>
+  <param name="world_frame_id" value ="world"/>
+  <param name="turtle_frame_id" value = "turtle"/>
   <rosparam file="$(find nuturtle_description)/config/diff_params.yaml" />  
+  <rosparam file="$(find nurtlesim)/config/tube_world_params.yaml" />  
 
   <node pkg="rigid2d" name="ody" type="odometer" output = "screen">
     <param name="odom_frame_id" value ="odom_frame"/>
@@ -12,7 +13,7 @@
     <param name="right_wheel_joint" value = "wheel_right_joint"/>
   </node>
 
-  <node pkg="rigid2d" name="fake" type="fake_turtle" output = "screen">
+  <node pkg="nurtlesim" name="fake" type="tube_world" output = "screen">
     <param name="wheel_base" value ="0.16"/>
     <param name="wheel_radius" value = "0.033"/>
     <param name="left_wheel_joint" value = "wheel_left_joint"/>
@@ -23,10 +24,6 @@
     <remap from="cmd_vel" to="turtle1/cmd_vel"/>
   </node>
 
-  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find nuturtle_description)/config/model.rviz -f odom_frame"/>
-  <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher">
-    <param name="publish_frequency" type="double" value="1000.0" />
-    <param name="tf_prefix" value=""/>
-  </node>
+  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find nurtlesim)/config/model.rviz -f world"/>
 
 </launch>
