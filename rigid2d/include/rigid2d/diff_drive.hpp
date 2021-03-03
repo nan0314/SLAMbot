@@ -46,6 +46,11 @@ namespace rigid2d{
         /// \return vector [phi_left phi_right]
         std::vector<double> twist2control(const rigid2d::Twist2D V);
 
+        /// \brief Convert wheel velocities to the equivalent desired twist
+        /// \param dphi wheel velocities
+        /// \return desired twist
+        rigid2d::Twist2D control2twist(const std::vector<double> dphi);
+
         /// \brief Update the configuration of the robot, given updated wheel angles
         /// \param angles updated wheel angles
         /// \return robot body twist

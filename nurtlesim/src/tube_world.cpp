@@ -148,9 +148,9 @@ void velCallback(const geometry_msgs::Twist::ConstPtr& msg){
         tube.scale.x = 2*tube_radius;
         tube.scale.y = 2*tube_radius;
         tube.scale.z = 1;
-        tube.color.r = 54;
-        tube.color.g = 117;
-        tube.color.b = 136;
+        tube.color.r = 117.0/255.0;
+        tube.color.g = 255.0/255.0;
+        tube.color.b = 255.0/255.0;
         tube.color.a = 1;
 
         if (inRange(current_pose,tube_pose)){
@@ -274,9 +274,9 @@ int main(int argc, char **argv)
         tube.type = 3;
         tube.action = 0;
         tube.pose = tube_pose;
-        // tube.scale.x = 2*tube_radius;
-        // tube.scale.y = 2*tube_radius;
-        // tube.scale.z = 1;
+        tube.scale.x = 2*tube_radius;
+        tube.scale.y = 2*tube_radius;
+        tube.scale.z = 1;
 
         // Append it to Markers message
         tube_array.markers.push_back(tube);

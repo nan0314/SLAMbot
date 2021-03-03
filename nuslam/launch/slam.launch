@@ -1,0 +1,33 @@
+<launch>
+
+  <arg name="robot" default="localhost" doc="allows the user to specify the hostname of the turtlebot"/>
+  <param name="frequency" value = "10"/>
+  <param name="world_frame_id" value ="world"/>
+  <param name="turtle_frame_id" value = "turtle"/>
+  <rosparam file="$(find nuturtle_description)/config/diff_params.yaml" />  
+  <rosparam file="$(find nurtlesim)/config/tube_world_params.yaml" />  
+
+  <node pkg="nurtlesim" name="slam" type="slam" output="screen">
+    <param name="odom_frame_id" value ="odom_frame"/>
+    <param name="body_frame_id" value = "base_footprint"/>
+    <param name="left_wheel_joint" value = "wheel_left_joint"/>
+    <param name="right_wheel_joint" value = "wheel_right_joint"/>
+  </node>
+
+  
+  <node pkg="nurtlesim" name="fake" type="tube_world" output = "screen">
+    <param name="wheel_base" value ="0.16"/>
+    <param name="wheel_radius" value = "0.033"/>
+    <param name="left_wheel_joint" value = "wheel_left_joint"/>
+    <param name="right_wheel_joint" value = "wheel_right_joint"/>
+  </node>
+
+  <node pkg="turtlebot3_teleop" type="turtlebot3_teleop_key" name="teleop">
+    <remap from="cmd_vel" to="turtle1/cmd_vel"/>
+  </node>
+
+  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find nurtlesim)/config/model.rviz -f world"/>
+
+
+
+</launch>
