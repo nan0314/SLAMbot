@@ -23,6 +23,7 @@
 #include "rigid2d/diff_drive.hpp"
 #include <visualization_msgs/Marker.h>
 #include <visualization_msgs/MarkerArray.h>
+#include <armadillo>
 #include <nav_msgs/Path.h>
 #include <vector>
 #include <string>
@@ -42,14 +43,17 @@ static std::string right_wheel_joint;   // Name of right wheel joint
 static std::normal_distribution<double> wheel_slip;
 static std::normal_distribution<double> trans_noise;
 static std::normal_distribution<double> rot_noise;
-static std::normal_distribution<double> tube_noise;
+static std::normal_distribution<double> u;
+static arma::mat L(2,2);
 static double max_range;
-static double tube_var;
 static double trans_var;
+static std::vector<double> tube_var;
 static double rot_var;
+static double slip_min;
 static double slip_max;
 static double tube_radius;
 static std::vector<double> tube_x, tube_y;
+static std::vector<double> recorded_angles = {0,0};
 
 
 std::mt19937 & get_random()
@@ -73,6 +77,19 @@ bool inRange(geometry_msgs::Pose turtle_pose, geometry_msgs::Pose tube_pose){
     }
 }
 
+bool collided(){
+
+    for (int i = 0; i<tube_x.size(); i++){
+        double dist_squared = pow((turtle.getX()-tube_x[i]),2) + pow(turtle.getY()-tube_y[i],2);
+        double dist = pow(dist_squared,0.5);
+        if (dist<=tube_radius+.08){
+            return true;
+        }
+    }
+
+    return false;
+}
+
 
 /// \brief recieve velocity command and cause fake_turtle to move 
 /// to fulfill velocity command
@@ -80,7 +97,9 @@ bool inRange(geometry_msgs::Pose turtle_pose, geometry_msgs::Pose tube_pose){
 void velCallback(const geometry_msgs::Twist::ConstPtr& msg){
 
     rigid2d::Twist2D desired_twist;
-    std::vector<double> cmd;
+    rigid2d::Twist2D noisy_twist;
+    std::vector<double> desired_dphi;
+
     sensor_msgs::JointState js;
     
     // Add Gaussian noise to the velocity command
@@ -93,16 +112,27 @@ void velCallback(const geometry_msgs::Twist::ConstPtr& msg){
     desired_twist.dx = trans_vel*dt;
     desired_twist.dy = 0;
 
-    cmd = turtle.vel_update(desired_twist);
+    desired_dphi = turtle.twist2control(desired_twist);
+    recorded_angles[0] += desired_dphi[0];
+    recorded_angles[1] += desired_dphi[1];
 
     // Calculate wheel_slip
     std::vector<double> omega = turtle.twist2control(desired_twist); // Get wheel speed
-    double eta = wheel_slip(get_random());
+    double etaleft = wheel_slip(get_random());
+    double etaright = wheel_slip(get_random());
+    
+    omega[0] *= etaleft;
+    omega[1] *= etaright;
+    noisy_twist = turtle.control2twist(omega);
+
+    if (!collided()){
+        turtle.vel_update(noisy_twist);
+    }
 
     // publish to joint state topic (update odometry)
     js.header.stamp = ros::Time::now();
     js.name = {left_wheel_joint, right_wheel_joint};
-    js.position = {cmd[0] + eta*omega[0] , cmd[1] + eta*omega[1]};
+    js.position = {recorded_angles[0], recorded_angles[1]};
 
     odom_pub.publish(js);
 
@@ -133,10 +163,14 @@ void velCallback(const geometry_msgs::Twist::ConstPtr& msg){
     visualization_msgs::MarkerArray tube_array;
 
     for (int i = 0; i<tube_x.size(); i++){
-
+        
         // Get the tube location
-        tube_pose.position.x = tube_x[i] + tube_noise(get_random());
-        tube_pose.position.y = tube_y[i] + tube_noise(get_random());
+        arma::vec u_vec(2);
+        u_vec(0) = u(get_random());
+        u_vec(1) = u(get_random());
+        arma::vec tube_noise = L*u_vec;
+        tube_pose.position.x = tube_x[i] + tube_noise(0);
+        tube_pose.position.y = tube_y[i] + tube_noise(1);
 
         // Set up the marker msg for the tube;
         tube.header.stamp = ros::Time::now();
@@ -207,7 +241,6 @@ int main(int argc, char **argv)
 
     // read parameters from parameter server
     double wb, r;
-    std::vector<double> covar1, covar2;
     
     ros::param::get("~left_wheel_joint",left_wheel_joint);
     ros::param::get("~right_wheel_joint",right_wheel_joint);
@@ -219,23 +252,30 @@ int main(int argc, char **argv)
     n.getParam("tube_var",tube_var);
     n.getParam("trans_var",trans_var);
     n.getParam("rot_var",rot_var);
+    n.getParam("slip_min",slip_min);
     n.getParam("slip_max",slip_max);
-    n.getParam("covar1",covar1);
-    n.getParam("covar2",covar2);
     n.getParam("tube_x",tube_x);
     n.getParam("tube_y",tube_y);
     n.getParam("tube_radius",tube_radius);
     n.getParam("max_range",max_range);
 
     // Set up normal distributions
-    std::normal_distribution<double> d(0.0,slip_max);
+    std::normal_distribution<double> d((slip_max+slip_min)/2,(slip_max - (slip_max+slip_min)/2));
     wheel_slip = d;
     std::normal_distribution<double> d1(0.0,trans_var);
     trans_noise = d1;
     std::normal_distribution<double> d2(0.0,rot_var);
     rot_noise = d2;
-    std::normal_distribution<double> d3(0.0,tube_var);
-    tube_noise = d3;
+    std::normal_distribution<double> d3(0.0,1);
+    u = d3;
+
+    arma::mat Q(2,2);
+    Q(0,0) = tube_var[0];
+    Q(0,1) = tube_var[1];
+    Q(1,0) = tube_var[2];
+    Q(1,1) = tube_var[3];
+
+    L = chol(Q);
     
     wb/=2;
 

@@ -35,7 +35,7 @@ namespace nuslam{
         /// \brief sets number of landmarks to n and initializes Q,R, and
         /// uncertainty
         /// \param n - number of landmarks
-        Filter(double n, arma::mat Q);
+        Filter(double n, arma::mat Q, arma::mat R);
 
         /// \brief updates the predicted state in the filter and propogates
         /// the uncertainty matrix

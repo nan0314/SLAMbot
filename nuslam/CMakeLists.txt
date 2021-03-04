@@ -17,6 +17,8 @@ find_package(catkin REQUIRED COMPONENTS
   tf2
 )
 
+find_package(Armadillo REQUIRED)
+
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
 
@@ -157,7 +159,7 @@ add_executable(slam src/slam.cpp)
 
 target_link_libraries(slam
   rigid2d
-  nuslam
+  ${PROJECT_NAME}
   ${ARMADILLO_LIBRARIES}
   ${catkin_LIBRARIES}
 )

@@ -4,14 +4,20 @@
   <param name="frequency" value = "10"/>
   <param name="world_frame_id" value ="world"/>
   <param name="turtle_frame_id" value = "turtle"/>
+  <param name="map_frame_id" value="map"/>
+  <param name="max_landmarks" value = "10"/>
+  <arg name="urdf_file" default="$(find xacro)/xacro '$(find nuturtle_description)/urdf/turtlebot3_burger.urdf.xacro'"/>
+  <param name="robot_description" command="$(arg urdf_file)"/>
+  <rosparam file="$(find nuslam)/config/covariance.yaml" />
   <rosparam file="$(find nuturtle_description)/config/diff_params.yaml" />  
   <rosparam file="$(find nurtlesim)/config/tube_world_params.yaml" />  
 
-  <node pkg="nurtlesim" name="slam" type="slam" output="screen">
+  <node pkg="nuslam" name="slam" type="slam" output="screen">
     <param name="odom_frame_id" value ="odom_frame"/>
     <param name="body_frame_id" value = "base_footprint"/>
     <param name="left_wheel_joint" value = "wheel_left_joint"/>
     <param name="right_wheel_joint" value = "wheel_right_joint"/>
+
   </node>
 
   
@@ -26,7 +32,11 @@
     <remap from="cmd_vel" to="turtle1/cmd_vel"/>
   </node>
 
-  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find nurtlesim)/config/model.rviz -f world"/>
+  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find nuslam)/config/model.rviz -f world"/>
+  <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher">
+    <param name="publish_frequency" type="double" value="1000.0" />
+    <param name="tf_prefix" value=""/>
+  </node>
 
 
 

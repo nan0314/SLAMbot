@@ -40,7 +40,9 @@ namespace rigid2d{
     rigid2d::Twist2D DiffDrive::control2twist(const std::vector<double> dphi){
         double dth = -dphi[0]*r/2.0/wb + dphi[1]*r/2.0/wb;
         double dx = dphi[0]*r/2.0 + dphi[1]*r/2.0;
-        Twist2D dphi_twist = Twist2D(dth,dx,0);
+        Twist2D dphi_twist = Twist2D(dth,dx,0.0);
+
+        return dphi_twist;
     }
 
 

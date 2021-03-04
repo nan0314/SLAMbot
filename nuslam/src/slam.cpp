@@ -39,7 +39,7 @@ static ros::Publisher slam_path_pub;
 static nav_msgs::Path odom_path;
 static nav_msgs::Path estimated_path;
 static double frequency;                // Ros loop frequency
-static int n = 10;                      // Maximum number of landmarks
+static int max_landmarks = 10;                      // Maximum number of landmarks
 static nuslam::Filter filter;
 static rigid2d::DiffDrive turtle;       // DiffDrive object to track robot configuration  
 static rigid2d::Twist2D u_t;
@@ -47,7 +47,9 @@ static std::string odom_frame_id;       // Name of odometry/world frame
 static std::string body_frame_id;       // Name of robot/body frame
 static std::string left_wheel_joint;    // Name of left wheel joint frame
 static std::string right_wheel_joint;   // Name of right wheel joint frame
-static arma::vec estimation(3+2*n,arma::fill::ones);
+static std::string map_frame_id;
+static std::string world_frame_id;
+static arma::vec estimation(3+2*max_landmarks,arma::fill::ones);
 
 
 
@@ -157,35 +159,103 @@ void slamCallback(const visualization_msgs::MarkerArray msg){
 
 
     // Propogate the uncertainty/Feed the prediction to the filter
-    ekf.predict(estimation);
+    filter.predict(estimation,u_t);
 
     // Perform SLAM to refine estimation
     arma::vec z_i(2);
     int j;
 
-    for (auto marker : msg){
+    for (auto marker : msg.markers){
 
-        z_i(0) = marker.pose.position.x;
-        z_i(1) = marker.pose.position.y;   
+        // Extract the cartesian distances between the landmark and turtle
+        std::vector<double> cartesian;
+        cartesian.push_back(marker.pose.position.x - estimation(1));
+        cartesian.push_back(marker.pose.position.y - estimation(2));
+
+        // Calculate z_i
+        std::vector<double> polar = nuslam::cartesian2polar(cartesian);
+        z_i(0) = polar[0];
+        z_i(1) = rigid2d::normalize_angle(polar[1]) - rigid2d::normalize_angle(estimation(0));
         j = marker.id;
 
-        estimation = update(u_t,z_i,j);
+        // update our estimated state
+        estimation = filter.update(u_t,z_i,j);
     }
 
 
-    // Format estimated state into pose object
+    // Format estimated state into pose object  
+    tf2::Quaternion slam_q;
+    slam_q.setRPY(0, 0, estimation(0));
+    geometry_msgs::Quaternion slam_quat = tf2::toMsg(slam_q); // convert tf2 quaternion to geometry_msg
+
     geometry_msgs::Pose estimated_pose;
-    estimated_pose.orientation.z = estimation(0);
+    estimated_pose.orientation = slam_quat;
     estimated_pose.position.x = estimation(1);
     estimated_pose.position.y = estimation(2);
 
     // Add pose to path
     geometry_msgs::PoseStamped ps;
     ps.pose = estimated_pose;
-    odom_path.poses.push_back(ps);
 
     estimated_path.poses.push_back(ps);
     slam_path_pub.publish(estimated_path);
+
+
+    ////////////////////////////////
+    // Transforms
+    ////////////////////////////////
+
+    // Calculate odom to turtle rotational transform
+    tf2::Quaternion slam2odom_q;
+    slam2odom_q.setRPY(0, 0, estimation(0) - turtle.getTh());
+    geometry_msgs::Quaternion slam2odom_quat = tf2::toMsg(slam2odom_q); // convert tf2 quaternion to geometry_msg
+
+    // initialize tf2 transform broadcaster
+    static tf2_ros::TransformBroadcaster br;
+    geometry_msgs::TransformStamped transformStamped;    
+    transformStamped.header.stamp = ros::Time::now();
+    transformStamped.header.frame_id = map_frame_id;
+    transformStamped.child_frame_id = odom_frame_id;
+
+    // set translational information
+    transformStamped.transform.translation.x = estimation(1) - turtle.getX();
+    transformStamped.transform.translation.y = estimation(2) - turtle.getY();
+    transformStamped.transform.translation.z = 0.0;
+    
+    // set rotational information
+    transformStamped.transform.rotation.x = slam2odom_q.x();
+    transformStamped.transform.rotation.y = slam2odom_q.y();
+    transformStamped.transform.rotation.z = slam2odom_q.z();
+    transformStamped.transform.rotation.w = slam2odom_q.w();
+
+    // broadcast transform to tf2
+    br.sendTransform(transformStamped);
+
+    // Calculate odom to turtle rotational transform
+    tf2::Quaternion world2map_q;
+    world2map_q.setRPY(0, 0, 0);
+    geometry_msgs::Quaternion world2map_quat = tf2::toMsg(world2map_q); // convert tf2 quaternion to geometry_msg
+
+    // initialize tf2 transform broadcaster 
+    transformStamped.header.stamp = ros::Time::now();
+    transformStamped.header.frame_id = world_frame_id;
+    transformStamped.child_frame_id = map_frame_id;
+
+    // set translational information
+    transformStamped.transform.translation.x = 0;
+    transformStamped.transform.translation.y = 0;
+    transformStamped.transform.translation.z = 0.0;
+    
+    // set rotational information
+    transformStamped.transform.rotation.x = world2map_q.x();
+    transformStamped.transform.rotation.y = world2map_q.y();
+    transformStamped.transform.rotation.z = world2map_q.z();
+    transformStamped.transform.rotation.w = world2map_q.w();
+
+    // broadcast transform to tf2
+    br.sendTransform(transformStamped);
+
+    return;
 }
 
 
@@ -234,20 +304,47 @@ bool set_pose(rigid2d::set_pose::Request  &req,
 int main(int argc, char **argv)
 {
     // initialize node/node handles
-    ros::init(argc, argv, "odometer");
+    ros::init(argc, argv, "slam");
     ros::NodeHandle n;
 
     // read parameters from parameter server
     double wb,r;
+    std::vector<double> Qrow;
+    std::vector<double> Rrow;
 
     ros::param::get("~odom_frame_id",odom_frame_id);
     ros::param::get("~body_frame_id",body_frame_id);
     ros::param::get("~left_wheel_joint",left_wheel_joint);
     ros::param::get("~right_wheel_joint",right_wheel_joint);
+    n.getParam("Q",Qrow);
+    n.getParam("R",Rrow);
+    n.getParam("world_frame_id",world_frame_id);
+    n.getParam("map_frame_id",map_frame_id);
     n.getParam("wheel_base",wb);
     n.getParam("wheel_radius",r);
     n.getParam("frequency",frequency);
+    n.getParam("max_landmarks", max_landmarks);
     wb/=2;
+
+    // Reformat Q and R
+    arma::mat Q(3,3);
+    Q(0,0) = Qrow[0];
+    Q(0,1) = Qrow[1];
+    Q(0,2) = Qrow[2];
+    Q(1,0) = Qrow[3];
+    Q(1,1) = Qrow[4];
+    Q(1,2) = Qrow[5];
+    Q(2,0) = Qrow[6];
+    Q(2,1) = Qrow[7];
+    Q(2,2) = Qrow[8];
+
+    arma::mat R(2,2);
+    R(0,0) = Rrow[0];
+    R(0,1) = Rrow[1];
+    R(1,0) = Rrow[2];
+    R(1,1) = Rrow[3];
+
+    filter = nuslam::Filter(max_landmarks,Q,R);
 
     // set up publishers and subscribers
     odom_pub = n.advertise<nav_msgs::Odometry>("odom", frequency);
@@ -259,6 +356,12 @@ int main(int argc, char **argv)
     // set up services
     ros::ServiceServer service = n.advertiseService("set_pose", set_pose);
 
+
+    // Set Path header
+    odom_path.header.stamp = ros::Time::now();
+    odom_path.header.frame_id = world_frame_id;
+    estimated_path.header.stamp = ros::Time::now();
+    estimated_path.header.frame_id = world_frame_id;
     // set publishing frequency
     ros::Rate loop_rate(frequency);
 
