@@ -282,6 +282,7 @@ int main(int argc, char **argv)
     // set up publishers and subscribers
     odom_pub = n.advertise<sensor_msgs::JointState>("joint_states", frequency);
     tube_pub = n.advertise<visualization_msgs::MarkerArray>("fake_sensor",frequency,true);
+    ros::Publisher truth_pub = n.advertise<visualization_msgs::MarkerArray>("ground_truth",frequency,true);
     path_pub = n.advertise<nav_msgs::Path>("real_path",frequency);
     ros::Subscriber vel_sub = n.subscribe("turtle1/cmd_vel", 10, velCallback);
 
@@ -323,6 +324,7 @@ int main(int argc, char **argv)
 
     }
     tube_pub.publish(tube_array);
+    truth_pub.publish(tube_array);
 
     int count = 0;
     while (ros::ok())

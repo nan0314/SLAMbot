@@ -40,7 +40,7 @@ namespace nuslam{
 
     Filter::Filter(double n, arma::mat Q, arma::mat R) : n(n), R(R) {
         initialize_uncertainty();
-        estimated_xi  = arma::vec(3+2*n,arma::fill::zeros);
+        estimated_xi  = arma::vec(3+2*n,arma::fill::ones);
         estimated_xi(0) = 0;
         estimated_xi(1) = 0;
         estimated_xi(2) = 0;
@@ -51,6 +51,22 @@ namespace nuslam{
             }
         }
         
+    }
+
+    arma::mat Filter::getUncertainty(){
+        return uncertainty;
+    }
+
+    arma::mat Filter::getQ(){
+        return Q;
+    }
+
+    arma::mat Filter::getR(){
+        return R;
+    }
+
+    arma::vec Filter::getEstimate(){
+        return estimated_xi;
     }
 
 
@@ -76,11 +92,11 @@ namespace nuslam{
         double th_tm = estimated_xi(0);
 
         if (rigid2d::almost_equal(u_t.dth,0)){
-            out(0,1) += -u_t.dx*sin(th_tm);
-            out(0,2) += u_t.dx*cos(th_tm);
+            out(1,0) += -u_t.dx*sin(th_tm);
+            out(2,0) += u_t.dx*cos(th_tm);
         } else {
-            out(0,1) += -u_t.dx/u_t.dth*cos(th_tm) + u_t.dx/u_t.dth*cos(th_tm+u_t.dth);
-            out(0,2) += -u_t.dx/u_t.dth*sin(th_tm) + u_t.dx/u_t.dth*sin(th_tm+u_t.dth);
+            out(1,0) += -u_t.dx/u_t.dth*cos(th_tm) + u_t.dx/u_t.dth*cos(th_tm+u_t.dth);
+            out(2,0) += -u_t.dx/u_t.dth*sin(th_tm) + u_t.dx/u_t.dth*sin(th_tm+u_t.dth);
         }
 
         return out;
@@ -90,7 +106,7 @@ namespace nuslam{
 
         double delx = estimated_xi(3+2*j) - estimated_xi(1);
         double dely = estimated_xi(4+2*j) - estimated_xi(2);
-        double d = pow(pow(delx,2)+pow(dely,2),0.5);
+        double d = pow(delx,2)+pow(dely,2);
 
         arma::mat out(2,3+2*n,arma::fill::zeros);
 
@@ -121,7 +137,7 @@ namespace nuslam{
         // Calculate z_i
         polar = nuslam::cartesian2polar(cartesian);
         z(0) = polar[0];
-        z(1) = rigid2d::normalize_angle(polar[1]) - rigid2d::normalize_angle(estimated_xi(0));
+        z(1) = rigid2d::normalize_angle(polar[1] - estimated_xi(0));
 
         return z;
     }
@@ -134,10 +150,12 @@ namespace nuslam{
 
         // // Compute Kalman gain
         arma::mat H_i = H(j);
-        arma::mat K_i = uncertainty*H_i.t() * (H_i*uncertainty*H_i.t() + R).i();
+        arma::mat K_i = uncertainty*arma::trans(H_i) * arma::inv(H_i*uncertainty*arma::trans(H_i) + R);
 
         // // Refine the estimated state
-        estimated_xi = estimated_xi + K_i*(z_i - z_est);
+        arma::vec dz = z_i - z_est;
+        dz[1] = rigid2d::normalize_angle(dz[1]);
+        estimated_xi = estimated_xi + K_i*dz;
         estimated_xi(0) = rigid2d::normalize_angle(estimated_xi(0));
 
         // // Update the uncertainty matrix

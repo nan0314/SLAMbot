@@ -60,17 +60,21 @@
   <build_export_depend>roscpp</build_export_depend>
   <build_export_depend>sensor_msgs</build_export_depend>
   <build_export_depend>tf2</build_export_depend>
+  <depend>catch_ros</depend>
   <depend>message_generation</depend>
   <exec_depend>message_runtime</exec_depend>
   <exec_depend>nurtlesim</exec_depend>
   <exec_depend>nuturtle_description</exec_depend>
   <exec_depend>nav_msgs</exec_depend>
   <exec_depend>rigid2d</exec_depend>
+  <exec_depend>robot_state_publisher</exec_depend>
   <exec_depend>rviz</exec_depend>
   <exec_depend>roscpp</exec_depend>
   <exec_depend>sensor_msgs</exec_depend>
   <exec_depend>tf2</exec_depend>
   <exec_depend>turtlebot3_teleop</exec_depend>
+  <exec_depend>xacro</exec_depend>
+
 
 
   <!-- The export tag contains other, unspecified, tags -->

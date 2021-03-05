@@ -41,14 +41,15 @@ static nav_msgs::Path estimated_path;
 static double frequency;                // Ros loop frequency
 static int max_landmarks = 10;                      // Maximum number of landmarks
 static nuslam::Filter filter;
-static rigid2d::DiffDrive turtle;       // DiffDrive object to track robot configuration  
-static rigid2d::Twist2D u_t;
+static rigid2d::DiffDrive turtle;       // DiffDrive object to track robot configuration 
+static rigid2d::DiffDrive slambot; 
 static std::string odom_frame_id;       // Name of odometry/world frame
 static std::string body_frame_id;       // Name of robot/body frame
 static std::string left_wheel_joint;    // Name of left wheel joint frame
 static std::string right_wheel_joint;   // Name of right wheel joint frame
 static std::string map_frame_id;
 static std::string world_frame_id;
+static std::vector<double> cmd = {0,0};
 static arma::vec estimation(3+2*max_landmarks,arma::fill::ones);
 
 
@@ -74,9 +75,7 @@ void stateCallback(const sensor_msgs::JointState::ConstPtr& msg){
         }
     }
     // Get the current control
-    vector<double> prev = turtle.getEncoders();
-    vector<double> dphi = {phi[0]-prev[0],phi[1]-prev[1]}; 
-    u_t = turtle.control2twist(dphi);
+    cmd = phi;
 
     rigid2d::Twist2D dq = turtle.update(phi);
 
@@ -152,10 +151,17 @@ void slamCallback(const visualization_msgs::MarkerArray msg){
     // SLAM
     ///////////////////////////////
 
+    std::vector<double> prev = slambot.getEncoders();
+    std::vector<double> dphi;
+    dphi.push_back(cmd[0]-prev[0]);
+    dphi.push_back(cmd[1]-prev[1]);
+    rigid2d::Twist2D u_t = slambot.control2twist(dphi);
+    slambot.update(cmd);
+
     // Format prediction from odometry
-    estimation(0) = turtle.getTh();
-    estimation(1) = turtle.getX();
-    estimation(2) = turtle.getY();
+    estimation(0) = slambot.getTh();
+    estimation(1) = slambot.getX();
+    estimation(2) = slambot.getY();
 
 
     // Propogate the uncertainty/Feed the prediction to the filter
@@ -167,6 +173,10 @@ void slamCallback(const visualization_msgs::MarkerArray msg){
 
     for (auto marker : msg.markers){
 
+        if (marker.action == 2){
+            continue;
+        }
+
         // Extract the cartesian distances between the landmark and turtle
         std::vector<double> cartesian;
         cartesian.push_back(marker.pose.position.x - estimation(1));
@@ -175,7 +185,7 @@ void slamCallback(const visualization_msgs::MarkerArray msg){
         // Calculate z_i
         std::vector<double> polar = nuslam::cartesian2polar(cartesian);
         z_i(0) = polar[0];
-        z_i(1) = rigid2d::normalize_angle(polar[1]) - rigid2d::normalize_angle(estimation(0));
+        z_i(1) = rigid2d::normalize_angle(polar[1] - estimation(0));
         j = marker.id;
 
         // update our estimated state
@@ -204,10 +214,19 @@ void slamCallback(const visualization_msgs::MarkerArray msg){
     ////////////////////////////////
     // Transforms
     ////////////////////////////////
+    rigid2d::Vector2D v;
+    v.x = turtle.getX();
+    v.y = turtle.getY();
+    rigid2d::Transform2D T_ob(v,turtle.getTh());
+    v.x = estimation(1);
+    v.y = estimation(2);
+    rigid2d::Transform2D T_mb(v,estimation(0));
+
+    rigid2d::Transform2D T_mo = T_mb*T_ob.inv();
 
     // Calculate odom to turtle rotational transform
     tf2::Quaternion slam2odom_q;
-    slam2odom_q.setRPY(0, 0, estimation(0) - turtle.getTh());
+    slam2odom_q.setRPY(0, 0, asin(T_mo.getStheta()));
     geometry_msgs::Quaternion slam2odom_quat = tf2::toMsg(slam2odom_q); // convert tf2 quaternion to geometry_msg
 
     // initialize tf2 transform broadcaster
@@ -218,8 +237,8 @@ void slamCallback(const visualization_msgs::MarkerArray msg){
     transformStamped.child_frame_id = odom_frame_id;
 
     // set translational information
-    transformStamped.transform.translation.x = estimation(1) - turtle.getX();
-    transformStamped.transform.translation.y = estimation(2) - turtle.getY();
+    transformStamped.transform.translation.x = T_mo.getX();
+    transformStamped.transform.translation.y = T_mo.getY();
     transformStamped.transform.translation.z = 0.0;
     
     // set rotational information
@@ -367,6 +386,7 @@ int main(int argc, char **argv)
 
     // Initialize differintial drive robot
     turtle = rigid2d::DiffDrive(wb,r);
+    slambot = rigid2d::DiffDrive(wb,r);
 
     int count = 0;
     while (ros::ok())

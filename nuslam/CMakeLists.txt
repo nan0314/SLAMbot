@@ -8,6 +8,7 @@ project(nuslam)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
+  catch_ros
   message_generation
   message_runtime
   nav_msgs
@@ -224,3 +225,13 @@ install(DIRECTORY include/${PROJECT_NAME}/
 
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
+
+catch_add_test(nuslam_test
+  tests/test.cpp
+)
+target_link_libraries(nuslam_test
+  rigid2d
+	${catkin_LIBRARIES}
+  ${PROJECT_NAME}
+  ${ARMADILLO_LIBRARIES}
+)
