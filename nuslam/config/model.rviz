@@ -9,11 +9,11 @@ Panels:
         - /TF1
         - /TF1/Frames1
         - /MarkerArray1
+        - /MarkerArray3
         - /Path1
         - /Path2
         - /Path3
         - /RobotModel1
-        - /RobotModel1/Status1
       Splitter Ratio: 0.5
     Tree Height: 1366
   - Class: rviz/Selection
@@ -115,12 +115,28 @@ Visualization Manager:
       Value: true
     - Class: rviz/MarkerArray
       Enabled: true
-      Marker Topic: /fake_sensor
+      Marker Topic: /ground_truth
       Name: MarkerArray
       Namespaces:
         real: true
       Queue Size: 100
       Value: true
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: /estimated_tubes
+      Name: MarkerArray
+      Namespaces:
+        estimated: true
+      Queue Size: 100
+      Value: true
+    - Class: rviz/MarkerArray
+      Enabled: false
+      Marker Topic: /fake_sensor
+      Name: MarkerArray
+      Namespaces:
+        {}
+      Queue Size: 100
+      Value: false
     - Alpha: 1
       Buffer Length: 1
       Class: rviz/Path
@@ -270,7 +286,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 3.7956881523132324
+      Distance: 8.166905403137207
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1

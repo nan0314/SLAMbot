@@ -38,16 +38,16 @@ namespace nuslam{
         Q = arma::mat(2*n+3, 2*n + 3, arma::fill::zeros);
     }
 
-    Filter::Filter(double n, arma::mat Q, arma::mat R) : n(n), R(R) {
+    Filter::Filter(double n, arma::mat Q_in, arma::mat R) : n(n), R(R) {
         initialize_uncertainty();
         estimated_xi  = arma::vec(3+2*n,arma::fill::ones);
         estimated_xi(0) = 0;
         estimated_xi(1) = 0;
         estimated_xi(2) = 0;
         this->Q = arma::mat(2*n+3, 2*n + 3, arma::fill::zeros);
-        for (int i = 0; i<Q.n_rows; i++){
-            for (int j = 0; j<Q.n_cols; j++){
-                this->Q(i,j) = Q(i,j);
+        for (int i = 0; i<Q_in.n_rows; i++){
+            for (int j = 0; j<Q_in.n_cols; j++){
+                this->Q(i,j) = Q_in(i,j);
             }
         }
         
@@ -70,26 +70,50 @@ namespace nuslam{
     }
 
 
-    void Filter::predict(const arma::vec prediction, const rigid2d::Twist2D& u_t){
+    arma::mat Filter::predict(const rigid2d::Twist2D& u_t){
 
         // Calculate the A matrix
-        arma::mat A_t = A(u_t);
+        // arma::mat A_t = A(u_t);
+        arma::mat A_t = arma::mat(3+2*n,3+2*n,arma::fill::eye);
+        double th = estimated_xi(0);
+
+        if (fabs(u_t.dth) < .000001){
+            A_t(1,0) += -u_t.dx*sin(th);
+            A_t(2,0) += u_t.dx*cos(th);
+
+            estimated_xi(0) = estimated_xi(0) + 0;
+            estimated_xi(1) = estimated_xi(1) + u_t.dx * cos(th);
+            estimated_xi(2) = estimated_xi(2) + u_t.dx * sin(th);
+
+        } else {
+            A_t(1,0) += -u_t.dx/u_t.dth*cos(th) + u_t.dx/u_t.dth*cos(th + u_t.dth);
+            A_t(2,0) += -u_t.dx/u_t.dth*sin(th) + u_t.dx/u_t.dth*sin(th + u_t.dth);
+
+            estimated_xi(0) = estimated_xi(0) + u_t.dth;
+            estimated_xi(1) = estimated_xi(1) + -u_t.dx/u_t.dth*sin(th) + u_t.dx/u_t.dth*sin(th + u_t.dth);
+            estimated_xi(2) = estimated_xi(2) + u_t.dx/u_t.dth*cos(th) - u_t.dx/u_t.dth*cos(th + u_t.dth);
+        }
 
         // Set the estimated_xi to the prediction
-        estimated_xi = prediction;
+        estimated_xi(0) = rigid2d::normalize_angle(estimated_xi(0));
 
         // Propogate the uncertainty
         uncertainty = A_t*uncertainty*A_t.t() + Q;
 
-        return;
+        return estimated_xi;
     }
 
+    void Filter::initialize_landmark(arma::vec z_i,int j){
+        estimated_xi(3+2*j) = estimated_xi(1) + z_i(0)*cos(z_i(1) + estimated_xi(0));
+        estimated_xi(4+2*j) = estimated_xi(2) + z_i(0)*sin(z_i(1) + estimated_xi(0));
 
+        return;
+    }
 
     arma::mat Filter::A(const rigid2d::Twist2D& u_t){
 
         arma::mat out(2*n+3,2*n+3,arma::fill::eye);
-        double th_tm = estimated_xi(0);
+        double th_tm = rigid2d::normalize_angle(estimated_xi(0));
 
         if (rigid2d::almost_equal(u_t.dth,0)){
             out(1,0) += -u_t.dx*sin(th_tm);
@@ -136,9 +160,10 @@ namespace nuslam{
 
         // Calculate z_i
         polar = nuslam::cartesian2polar(cartesian);
+
         z(0) = polar[0];
         z(1) = rigid2d::normalize_angle(polar[1] - estimated_xi(0));
-
+        
         return z;
     }
 
@@ -147,6 +172,9 @@ namespace nuslam{
 
         // Compute estimate measurement for jth landmark
         arma::vec z_est = h(j);
+
+        // std::cout << "\r" << z_est(0) << ' ' << z_est(1) << std::endl;
+        // std::cout << "\r" << z_i(0) << ' ' << z_i(1) << std::endl << std::endl;
 
         // // Compute Kalman gain
         arma::mat H_i = H(j);

@@ -8,9 +8,9 @@
 
 namespace nuslam{
 
+    /// \brief takes a 2d vector in cartesian [x,y] coordinates and converts it
+    ///  into a 2d vector in polar coordinates [r,phi]
     std::vector<double> cartesian2polar(std::vector<double> cartesian);
-
-    std::vector<double> polar2cartesion(std::vector<double> polar);
 
     class Filter{
 
@@ -35,7 +35,7 @@ namespace nuslam{
         /// \brief sets number of landmarks to n and initializes Q,R, and
         /// uncertainty
         /// \param n - number of landmarks
-        Filter(double n, arma::mat Q, arma::mat R);
+        Filter(double n, arma::mat Q_in, arma::mat R);
 
         arma::mat getUncertainty();
 
@@ -45,11 +45,13 @@ namespace nuslam{
 
         arma::vec getEstimate();
 
+        void initialize_landmark(arma::vec z_i, int j);
+
         /// \brief updates the predicted state in the filter and propogates
         /// the uncertainty matrix
         /// \param prediction - updated prediction from odometry
         /// \param u_t - current control signal
-        void predict(const arma::vec prediction, const rigid2d::Twist2D& u_t);
+        arma::mat predict(const rigid2d::Twist2D& u_t);
 
         /// \brief Outputs linear state estimation matrix given twist u_t
         /// \param u_t - given control twist u_t [dtheta, dx, 0]
@@ -64,7 +66,6 @@ namespace nuslam{
         arma::mat H(int j);
 
         arma::vec h(int j);
-
 
         ///
         arma::vec update(rigid2d::Twist2D u_t, arma::vec z_i,int j);

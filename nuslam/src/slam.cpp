@@ -1,4 +1,4 @@
-/// \file
+/// \file slam.cpp
 /// \brief Publishes Odometry messages in a standard ROS way-- updates internal odometry state,
 ///        publishes a nav_msgs/Odometry message on the odom topic, and broadcasts the transform 
 ///        between the odometry frame and the body frame on /tf using a tf2 broadcaster
@@ -30,15 +30,18 @@
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include "rigid2d/diff_drive.hpp"
 #include "nuslam/nuslam.hpp"
+#include <unordered_map>
 #include <vector>
 #include <string>
 
 static ros::Publisher odom_pub;         // Odometry state publisher
 static ros::Publisher odom_path_pub;
 static ros::Publisher slam_path_pub;
+static ros::Publisher tube_pub;
 static nav_msgs::Path odom_path;
 static nav_msgs::Path estimated_path;
 static double frequency;                // Ros loop frequency
+static double tube_radius;
 static int max_landmarks = 10;                      // Maximum number of landmarks
 static nuslam::Filter filter;
 static rigid2d::DiffDrive turtle;       // DiffDrive object to track robot configuration 
@@ -50,6 +53,7 @@ static std::string right_wheel_joint;   // Name of right wheel joint frame
 static std::string map_frame_id;
 static std::string world_frame_id;
 static std::vector<double> cmd = {0,0};
+static std::unordered_map<int,int> init;
 static arma::vec estimation(3+2*max_landmarks,arma::fill::ones);
 
 
@@ -156,31 +160,26 @@ void slamCallback(const visualization_msgs::MarkerArray msg){
     dphi.push_back(cmd[0]-prev[0]);
     dphi.push_back(cmd[1]-prev[1]);
     rigid2d::Twist2D u_t = slambot.control2twist(dphi);
-    slambot.update(cmd);
-
-    // Format prediction from odometry
-    estimation(0) = slambot.getTh();
-    estimation(1) = slambot.getX();
-    estimation(2) = slambot.getY();
-
-
-    // Propogate the uncertainty/Feed the prediction to the filter
-    filter.predict(estimation,u_t);
+    rigid2d::Twist2D dq = slambot.update(cmd);
 
     // Perform SLAM to refine estimation
     arma::vec z_i(2);
     int j;
+
+    // Propogate the uncertainty/Feed the prediction to the filter
+    estimation = filter.predict(u_t);
+
 
     for (auto marker : msg.markers){
 
         if (marker.action == 2){
             continue;
         }
-
+            
         // Extract the cartesian distances between the landmark and turtle
         std::vector<double> cartesian;
-        cartesian.push_back(marker.pose.position.x - estimation(1));
-        cartesian.push_back(marker.pose.position.y - estimation(2));
+        cartesian.push_back(marker.pose.position.x);
+        cartesian.push_back(marker.pose.position.y);
 
         // Calculate z_i
         std::vector<double> polar = nuslam::cartesian2polar(cartesian);
@@ -188,9 +187,55 @@ void slamCallback(const visualization_msgs::MarkerArray msg){
         z_i(1) = rigid2d::normalize_angle(polar[1] - estimation(0));
         j = marker.id;
 
+        if (init.find(j) == init.end()){
+            init[j] = 1;
+            filter.initialize_landmark(z_i,j);
+            estimation = filter.getEstimate();
+        }
+
+
         // update our estimated state
         estimation = filter.update(u_t,z_i,j);
+        estimation(0) = rigid2d::normalize_angle(estimation(0));
     }
+
+    // Set up MarkerArray
+    visualization_msgs::Marker tube;
+    geometry_msgs::Pose tube_pose;
+    visualization_msgs::MarkerArray tube_array;
+
+    // Handle estimated tubes
+
+    for (int j = 0; j<max_landmarks; j++){
+
+         if (init.find(j) == init.end()){
+            continue;
+        }
+
+        tube_pose.position.x = estimation(3+2*j);
+        tube_pose.position.y = estimation(4+2*j);
+
+        // Set up the marker msg for the tube;
+        tube.header.stamp = ros::Time::now();
+        tube.header.frame_id = map_frame_id;
+        tube.ns = "estimated";
+        tube.id = j;
+        tube.type = 3;
+        tube.action = 0;
+        tube.pose = tube_pose;
+        tube.scale.x = 2*tube_radius;
+        tube.scale.y = 2*tube_radius;
+        tube.scale.z = 1;
+        tube.color.r = 117.0/255.0;
+        tube.color.g = 255.0/255.0;
+        tube.color.b = 255.0/255.0;
+        tube.color.a = 1;
+
+        // Append it to Markers message
+        tube_array.markers.push_back(tube);
+    }
+
+    tube_pub.publish(tube_array);
 
 
     // Format estimated state into pose object  
@@ -214,6 +259,7 @@ void slamCallback(const visualization_msgs::MarkerArray msg){
     ////////////////////////////////
     // Transforms
     ////////////////////////////////
+
     rigid2d::Vector2D v;
     v.x = turtle.getX();
     v.y = turtle.getY();
@@ -335,6 +381,7 @@ int main(int argc, char **argv)
     ros::param::get("~body_frame_id",body_frame_id);
     ros::param::get("~left_wheel_joint",left_wheel_joint);
     ros::param::get("~right_wheel_joint",right_wheel_joint);
+    n.getParam("tube_radius",tube_radius);
     n.getParam("Q",Qrow);
     n.getParam("R",Rrow);
     n.getParam("world_frame_id",world_frame_id);
@@ -369,6 +416,7 @@ int main(int argc, char **argv)
     odom_pub = n.advertise<nav_msgs::Odometry>("odom", frequency);
     odom_path_pub = n.advertise<nav_msgs::Path>("odom_path",frequency);
     slam_path_pub = n.advertise<nav_msgs::Path>("slam_path",frequency);
+    tube_pub = n.advertise<visualization_msgs::MarkerArray>("estimated_tubes",10);
     ros::Subscriber joint_sub = n.subscribe("joint_states", frequency, stateCallback);
     ros::Subscriber sensor_sub = n.subscribe("fake_sensor",10,slamCallback);
 
@@ -382,11 +430,14 @@ int main(int argc, char **argv)
     estimated_path.header.stamp = ros::Time::now();
     estimated_path.header.frame_id = world_frame_id;
     // set publishing frequency
-    ros::Rate loop_rate(frequency);
+    ros::Rate loop_rate(10);
 
     // Initialize differintial drive robot
     turtle = rigid2d::DiffDrive(wb,r);
     slambot = rigid2d::DiffDrive(wb,r);
+    estimation(0) = 0;
+    estimation(1) = 0;
+    estimation(2) = 0;
 
     int count = 0;
     while (ros::ok())

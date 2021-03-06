@@ -169,8 +169,8 @@ void velCallback(const geometry_msgs::Twist::ConstPtr& msg){
         u_vec(0) = u(get_random());
         u_vec(1) = u(get_random());
         arma::vec tube_noise = L*u_vec;
-        tube_pose.position.x = tube_x[i] + tube_noise(0);
-        tube_pose.position.y = tube_y[i] + tube_noise(1);
+        tube_pose.position.x = tube_x[i] + tube_noise(0) - turtle.getX();
+        tube_pose.position.y = tube_y[i] + tube_noise(1) - turtle.getY();
 
         // Set up the marker msg for the tube;
         tube.header.stamp = ros::Time::now();
@@ -182,9 +182,9 @@ void velCallback(const geometry_msgs::Twist::ConstPtr& msg){
         tube.scale.x = 2*tube_radius;
         tube.scale.y = 2*tube_radius;
         tube.scale.z = 1;
-        tube.color.r = 117.0/255.0;
-        tube.color.g = 255.0/255.0;
-        tube.color.b = 255.0/255.0;
+        tube.color.r = 80./255.;
+        tube.color.g = 220./255.;
+        tube.color.b = 100./255.;       
         tube.color.a = 1;
 
         if (inRange(current_pose,tube_pose)){
@@ -318,12 +318,15 @@ int main(int argc, char **argv)
         tube.scale.x = 2*tube_radius;
         tube.scale.y = 2*tube_radius;
         tube.scale.z = 1;
+        tube.color.r = 1;
+        tube.color.g = 1;
+        tube.color.b = 1;
+        tube.color.a = 1;
 
         // Append it to Markers message
         tube_array.markers.push_back(tube);
 
     }
-    tube_pub.publish(tube_array);
     truth_pub.publish(tube_array);
 
     int count = 0;
