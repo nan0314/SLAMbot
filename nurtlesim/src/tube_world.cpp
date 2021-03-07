@@ -1,14 +1,29 @@
-/// \file
-/// \brief Node provides a kinematic simulation of a differential drive robot
+/// \file tube_world.cpp
+/// \brief Simulates real turtlebot with noise
 ///
 /// PARAMETERS:
+///     tube_x vector<double>: x positions of tubes 
+///     tube_y vector<double>: y positions of tubes
+///     tube_radius (double): tube radius
+///     max_range (double): maximum range of laser scanner
+///     tube_var (arma::mat): covariance matrix for x-y sensor
+///     trans_var (double): variance for dx in the control twist
+///     rot_var (double): variance for dth in the control twist
+///     slip_min (double): minimum wheel slip coefficient
+///     slip_max (double): maximum wheel slip coefficient
 ///     frequency (double): ROS loop frequency
 ///     wheel_base (double): distance between wheels on diffdrive robot
 ///     wheel_radius (double): radius of wheels on diffdrive robot
 ///     left_wheel_joint (string): Name of left wheel joint frame
 ///     right_wheel_joint (string): Name of right wheel joint frame
+///     world_frame_id (string): Name of world frame
+///     turtle_frame_id (string): Name of turtle frame
+///     
 /// PUBLISHES:
 ///     joint_states (sensor_msgs/JointState): messages hold Joint State for each non-fixed joint in the robot
+///     fake_sensor (visualization_msgs/MarkerArray): messages hold landmark positions with noise
+///     ground_truth (visualization_msgs/MarkerArray): messages hold landmark positions without noise
+///     real_path (nav_msgs): holds pose states for the simulated turtle for each time step
 /// SUBSCRIBES:
 ///     turtle1/cmd_vel (geometry_msgs/Twist): angular/linear velocity commands
 /// SERVICES:
@@ -30,32 +45,33 @@
 #include <random>
 #include <cmath>
 
-static ros::Publisher odom_pub;         // Odometry state publisher
-static ros::Publisher tube_pub;         // Publishes tube locations
-static ros::Publisher path_pub;
-static double frequency;                // Ros loop frequency
-static nav_msgs::Path path;
-static rigid2d::DiffDrive turtle;       // DiffDrive object to track robot configuration  
-static std::string world_frame_id;       // Name of odometry/world frame
-static std::string turtle_frame_id;       // Name of robot/body frame
-static std::string left_wheel_joint;    // Name of left wheel joint
-static std::string right_wheel_joint;   // Name of right wheel joint
-static std::normal_distribution<double> wheel_slip;
-static std::normal_distribution<double> trans_noise;
-static std::normal_distribution<double> rot_noise;
-static std::normal_distribution<double> u;
-static arma::mat L(2,2);
-static double max_range;
-static double trans_var;
-static std::vector<double> tube_var;
-static double rot_var;
-static double slip_min;
-static double slip_max;
-static double tube_radius;
-static std::vector<double> tube_x, tube_y;
-static std::vector<double> recorded_angles = {0,0};
+static ros::Publisher odom_pub;                         // Odometry state publisher
+static ros::Publisher tube_pub;                         // Publishes tube locations
+static ros::Publisher path_pub;                         // Publishes path of actual robot
+static double frequency;                                // Ros loop frequency
+static nav_msgs::Path path;                             // Path of actual robot
+static rigid2d::DiffDrive turtle;                       // DiffDrive object to track robot configuration  
+static std::string world_frame_id;                      // Name of odometry/world frame
+static std::string turtle_frame_id;                     // Name of robot/body frame
+static std::string left_wheel_joint;                    // Name of left wheel joint
+static std::string right_wheel_joint;                   // Name of right wheel joint
+static std::normal_distribution<double> wheel_slip;     // Wheel slip normal distribution
+static std::normal_distribution<double> trans_noise;    // Translational velocity normal distribution
+static std::normal_distribution<double> rot_noise;      // Rotational velocity normal distribution
+static std::normal_distribution<double> u;              // x-y sensor state normal distribution
+static arma::mat L(2,2);                                // x-y sensor state covariance matrix
+static double max_range;                                // Maximum range of laser scanner
+static double trans_var;                                // Translational velocity variance
+static std::vector<double> tube_var;                    // Tube location covariance
+static double rot_var;                                  // Rotational velocity variance
+static double slip_min;                                 // Minimum wheel slip coefficient
+static double slip_max;                                 // Maximum wheel slip coefficient
+static double tube_radius;                              // Tube radius
+static std::vector<double> tube_x, tube_y;              // Tube positions
+static std::vector<double> recorded_angles = {0,0};     // Wheel angles without noise
 
 
+/// \brief Returns a random number
 std::mt19937 & get_random()
  {
      // static variables inside a function are created once and persist for the remainder of the program
@@ -67,6 +83,10 @@ std::mt19937 & get_random()
  }
 
 
+/// \brief Returns true if tube is within range of laser scanner
+/// \param turtle_pose - position of turtle
+/// \param tube_pose - tube position
+/// \returns true if tube is less than maxrange, else false
 bool inRange(geometry_msgs::Pose turtle_pose, geometry_msgs::Pose tube_pose){
     double dist_squared = pow((turtle_pose.position.x-tube_pose.position.x),2) + pow(turtle_pose.position.y-tube_pose.position.y,2);
     double dist = pow(dist_squared,0.5);
@@ -77,6 +97,8 @@ bool inRange(geometry_msgs::Pose turtle_pose, geometry_msgs::Pose tube_pose){
     }
 }
 
+/// \brief Returns true if robot is collided with tube
+/// \return true if robot is collided with tube, else false
 bool collided(){
 
     for (int i = 0; i<tube_x.size(); i++){
@@ -92,7 +114,7 @@ bool collided(){
 
 
 /// \brief recieve velocity command and cause fake_turtle to move 
-/// to fulfill velocity command
+/// to fulfill velocity command with applied noise
 /// \param msg geometry_msg/Twist pointer holding velocity command
 void velCallback(const geometry_msgs::Twist::ConstPtr& msg){
 

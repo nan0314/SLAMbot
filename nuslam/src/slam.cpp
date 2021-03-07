@@ -1,19 +1,29 @@
 /// \file slam.cpp
-/// \brief Publishes Odometry messages in a standard ROS way-- updates internal odometry state,
-///        publishes a nav_msgs/Odometry message on the odom topic, and broadcasts the transform 
-///        between the odometry frame and the body frame on /tf using a tf2 broadcaster
-
+/// \brief Implementing Feature-Based Kalman Filter SLAM
 ///
 /// PARAMETERS:
-///     frequency (double): ROS loop frequency
-///     odom_frame_id (string): Name of odometry/world frame
+///     world_frame_id (string): Name of world frame
+///     map_frame_id (string): Name of map frame
+///     odom_frame_id (string): Name of odom frame
 ///     body_frame_id (string): Name of body/robot frame
 ///     left_wheel_joint (string): Name of left wheel joint frame
 ///     right_wheel_joint (string): Name of right wheel joint frame
+///     tube_radius (doudle): radius of tube objects
+///     wheel_radius (double): radius of wheel
+///     wheel_base (double): distance between wheels in robot
+///     Q (arma::mat) state covariance matrix
+///     R (arma::mat) sensor covariance matrix
+///
 /// PUBLISHES:
 ///     odom (nav_msgs/Odometry): messages hold robot state information (3D linear/angular positions)
+///     odom_path (nav_msgs/Path): holds pose states from odometry for each time step
+///     slam_path (nav_msgs/Path): holds pose states from slam for each time step
+///     estimated_tubes (visualization_msgs/MarkerArray): messes hold array of slam estimated locations
+///     of tubes
 /// SUBSCRIBES:
 ///     joint_states (sensor_msgs/JointState): messages hold Joint State for each non-fixed joint in the robot
+///     fake_sensor (visualization_msgs/MarkerArray): messages hold array of Marker objects containing
+///     locations of tubes
 /// SERVICES:
 ///     set_pose (rigid2d/set_pose): reset the location of the odometry so that the robot thinks it is at the 
 ///     requested configuration
@@ -34,34 +44,31 @@
 #include <vector>
 #include <string>
 
-static ros::Publisher odom_pub;         // Odometry state publisher
-static ros::Publisher odom_path_pub;
-static ros::Publisher slam_path_pub;
-static ros::Publisher tube_pub;
-static nav_msgs::Path odom_path;
-static nav_msgs::Path estimated_path;
-static double frequency;                // Ros loop frequency
-static double tube_radius;
-static int max_landmarks = 10;                      // Maximum number of landmarks
-static nuslam::Filter filter;
-static rigid2d::DiffDrive turtle;       // DiffDrive object to track robot configuration 
-static rigid2d::DiffDrive slambot; 
-static std::string odom_frame_id;       // Name of odometry/world frame
-static std::string body_frame_id;       // Name of robot/body frame
-static std::string left_wheel_joint;    // Name of left wheel joint frame
-static std::string right_wheel_joint;   // Name of right wheel joint frame
-static std::string map_frame_id;
-static std::string world_frame_id;
-static std::vector<double> cmd = {0,0};
-static std::unordered_map<int,int> init;
-static arma::vec estimation(3+2*max_landmarks,arma::fill::ones);
+static ros::Publisher odom_pub;             // Odometry state publisher
+static ros::Publisher odom_path_pub;        // Odometry path publisher
+static ros::Publisher slam_path_pub;        // Slam path publisher
+static ros::Publisher tube_pub;             // Estimated tube state publisher
+static nav_msgs::Path odom_path;            // Odometry path
+static nav_msgs::Path estimated_path;       // Slam path
+static double frequency;                    // Ros loop frequency
+static double tube_radius;                  // Radius of tubes
+static int max_landmarks = 10;              // Maximum number of landmarks
+static nuslam::Filter filter;               // Extended Kalman Filter Object
+static rigid2d::DiffDrive turtle;           // DiffDrive object to track robot configuration 
+static rigid2d::DiffDrive slambot;          // Diffdirve object to track robot configuration for SLAM (not 100% necessary)
+static std::string odom_frame_id;           // Name of odometry frame
+static std::string body_frame_id;           // Name of robot/body frame
+static std::string left_wheel_joint;        // Name of left wheel joint frame
+static std::string right_wheel_joint;       // Name of right wheel joint frame
+static std::string map_frame_id;            // Name of map frame
+static std::string world_frame_id;          // Name of world frame
+static std::vector<double> cmd = {0,0};     // Stores wheel position from joint states publisher
+static std::unordered_map<int,int> init;    // Landmark initialization hash map-- tracks initialized landmarks
+static arma::vec estimation(3+2*max_landmarks,arma::fill::ones); // estimated state matrix (SLAM)
 
 
-
-/// \brief Publish a nav_msgs/Odometry message on the odom topic and 
-/// broadcast the transform between odom_frame_id and the body_frame_id on /tf
-/// when subscriber recieves message.
-/// \param msg sensor_msgs/JointState pointer holding joint configurations
+/// \brief recieves encoder count and performs odometry
+/// \param msg - joint state message containing wheel positions
 void stateCallback(const sensor_msgs::JointState::ConstPtr& msg){
 
     using std::vector;
@@ -148,7 +155,9 @@ void stateCallback(const sensor_msgs::JointState::ConstPtr& msg){
     return;
 }
 
-
+/// \brief fake_sensor callback-- recieves tube locations from sensor and 
+/// performs SLAM
+/// \param msg - MarkerArray containing tube locations
 void slamCallback(const visualization_msgs::MarkerArray msg){
 
     ///////////////////////////////

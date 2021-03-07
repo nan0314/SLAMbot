@@ -8,7 +8,6 @@ namespace nuslam{
 
     std::vector<double> cartesian2polar(std::vector<double> cartesian){
 
-
         std::vector<double> polar;
 
         polar.push_back(pow(pow(cartesian[0],2) + pow(cartesian[1],2),0.5));
@@ -17,9 +16,6 @@ namespace nuslam{
         return polar;
     }
 
-    // std::vector<double> polar2cartesion(std::vector<double> polar){
-
-    // }
 
     void Filter::initialize_uncertainty(){
         uncertainty = arma::mat(2*n + 3, 2*n + 3, arma::fill::eye);
@@ -70,7 +66,7 @@ namespace nuslam{
     }
 
 
-    arma::mat Filter::predict(const rigid2d::Twist2D& u_t){
+    arma::vec Filter::predict(const rigid2d::Twist2D& u_t){
 
         // Calculate the A matrix
         // arma::mat A_t = A(u_t);
@@ -173,20 +169,17 @@ namespace nuslam{
         // Compute estimate measurement for jth landmark
         arma::vec z_est = h(j);
 
-        // std::cout << "\r" << z_est(0) << ' ' << z_est(1) << std::endl;
-        // std::cout << "\r" << z_i(0) << ' ' << z_i(1) << std::endl << std::endl;
-
-        // // Compute Kalman gain
+        // Compute Kalman gain
         arma::mat H_i = H(j);
         arma::mat K_i = uncertainty*arma::trans(H_i) * arma::inv(H_i*uncertainty*arma::trans(H_i) + R);
 
-        // // Refine the estimated state
+        // Refine the estimated state
         arma::vec dz = z_i - z_est;
         dz[1] = rigid2d::normalize_angle(dz[1]);
         estimated_xi = estimated_xi + K_i*dz;
         estimated_xi(0) = rigid2d::normalize_angle(estimated_xi(0));
 
-        // // Update the uncertainty matrix
+        // Update the uncertainty matrix
         uncertainty = (arma::mat(3+2*n, 3+2*n,arma::fill::eye) - K_i*H_i) * uncertainty;
 
         return estimated_xi;

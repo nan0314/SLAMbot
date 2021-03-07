@@ -82,7 +82,7 @@ Visualization Manager:
       Value: true
     - Class: rviz/MarkerArray
       Enabled: true
-      Marker Topic: /fake_sensor
+      Marker Topic: /ground_truth
       Name: MarkerArray
       Namespaces:
         real: true
@@ -140,7 +140,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 20.162742614746094
+      Distance: 7.953612804412842
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
