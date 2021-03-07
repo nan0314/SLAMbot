@@ -263,20 +263,20 @@ void slamCallback(const visualization_msgs::MarkerArray msg){
     rigid2d::Vector2D v;
     v.x = turtle.getX();
     v.y = turtle.getY();
-    rigid2d::Transform2D T_ob(v,turtle.getTh());
+    rigid2d::Transform2D T_ob(v,0);
     v.x = estimation(1);
     v.y = estimation(2);
-    rigid2d::Transform2D T_mb(v,estimation(0));
+    rigid2d::Transform2D T_mb(v,0);
 
     rigid2d::Transform2D T_mo = T_mb*T_ob.inv();
 
     // Calculate odom to turtle rotational transform
     tf2::Quaternion slam2odom_q;
-    slam2odom_q.setRPY(0, 0, asin(T_mo.getStheta()));
+    slam2odom_q.setRPY(0, 0, rigid2d::normalize_angle(asin(T_mo.getStheta())));
     geometry_msgs::Quaternion slam2odom_quat = tf2::toMsg(slam2odom_q); // convert tf2 quaternion to geometry_msg
 
     // initialize tf2 transform broadcaster
-    static tf2_ros::TransformBroadcaster br;
+    tf2_ros::TransformBroadcaster br;
     geometry_msgs::TransformStamped transformStamped;    
     transformStamped.header.stamp = ros::Time::now();
     transformStamped.header.frame_id = map_frame_id;
@@ -296,29 +296,32 @@ void slamCallback(const visualization_msgs::MarkerArray msg){
     // broadcast transform to tf2
     br.sendTransform(transformStamped);
 
+
+    tf2_ros::TransformBroadcaster wbr;
+    geometry_msgs::TransformStamped wtransformStamped; 
     // Calculate odom to turtle rotational transform
     tf2::Quaternion world2map_q;
     world2map_q.setRPY(0, 0, 0);
     geometry_msgs::Quaternion world2map_quat = tf2::toMsg(world2map_q); // convert tf2 quaternion to geometry_msg
 
     // initialize tf2 transform broadcaster 
-    transformStamped.header.stamp = ros::Time::now();
-    transformStamped.header.frame_id = world_frame_id;
-    transformStamped.child_frame_id = map_frame_id;
+    wtransformStamped.header.stamp = ros::Time::now();
+    wtransformStamped.header.frame_id = world_frame_id;
+    wtransformStamped.child_frame_id = map_frame_id;
 
     // set translational information
-    transformStamped.transform.translation.x = 0;
-    transformStamped.transform.translation.y = 0;
-    transformStamped.transform.translation.z = 0.0;
+    wtransformStamped.transform.translation.x = 0;
+    wtransformStamped.transform.translation.y = 0;
+    wtransformStamped.transform.translation.z = 0.0;
     
     // set rotational information
-    transformStamped.transform.rotation.x = world2map_q.x();
-    transformStamped.transform.rotation.y = world2map_q.y();
-    transformStamped.transform.rotation.z = world2map_q.z();
-    transformStamped.transform.rotation.w = world2map_q.w();
+    wtransformStamped.transform.rotation.x = world2map_q.x();
+    wtransformStamped.transform.rotation.y = world2map_q.y();
+    wtransformStamped.transform.rotation.z = world2map_q.z();
+    wtransformStamped.transform.rotation.w = world2map_q.w();
 
     // broadcast transform to tf2
-    br.sendTransform(transformStamped);
+    wbr.sendTransform(wtransformStamped);
 
     return;
 }
