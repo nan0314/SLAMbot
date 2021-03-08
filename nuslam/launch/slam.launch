@@ -17,11 +17,19 @@
     <param name="body_frame_id" value = "base_footprint"/>
     <param name="left_wheel_joint" value = "wheel_left_joint"/>
     <param name="right_wheel_joint" value = "wheel_right_joint"/>
-
   </node>
 
+  <group unless="$(eval robot == 'localhost')">
+    <include file="$(find nuturtle_robot)/launch/basic_remote.launch" >
+      <arg name="robot" value="$(arg robot)" />
+    </include>
+ 
+  </group>
+
+
+
   
-  <node pkg="nurtlesim" name="fake" type="tube_world" output = "screen">
+  <node pkg="nurtlesim" name="fake" type="tube_world" output = "screen" if="$(eval robot == 'localhost')">
     <param name="wheel_base" value ="0.16"/>
     <param name="wheel_radius" value = "0.033"/>
     <param name="left_wheel_joint" value = "wheel_left_joint"/>
@@ -32,7 +40,7 @@
     <remap from="cmd_vel" to="turtle1/cmd_vel"/>
   </node>
 
-  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find nuslam)/config/model.rviz -f world"/>
+  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find nuslam)/config/model.rviz -f world --opengl 210"/>
   <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher">
     <param name="publish_frequency" type="double" value="1000.0" />
     <param name="tf_prefix" value=""/>

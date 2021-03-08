@@ -8,6 +8,8 @@ Panels:
         - /Status1
         - /TF1
         - /MarkerArray1
+        - /Marker1
+        - /Marker1/Status1
         - /Path1
       Splitter Ratio: 0.5
     Tree Height: 1366
@@ -88,6 +90,14 @@ Visualization Manager:
         real: true
       Queue Size: 100
       Value: true
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: /wall
+      Name: Marker
+      Namespaces:
+        real: true
+      Queue Size: 100
+      Value: true
     - Alpha: 1
       Buffer Length: 1
       Class: rviz/Path
@@ -140,7 +150,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 7.953612804412842
+      Distance: 15.3054838180542
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1

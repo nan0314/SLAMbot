@@ -32,7 +32,9 @@
 #include <ros/ros.h>
 #include <nav_msgs/Odometry.h>
 #include <sensor_msgs/JointState.h>
+#include <sensor_msgs/LaserScan.h>
 #include <geometry_msgs/Twist.h>
+#include <geometry_msgs/Point.h>
 #include <tf2_ros/transform_broadcaster.h>
 #include <tf2/LinearMath/Quaternion.h>
 #include "rigid2d/diff_drive.hpp"
@@ -48,6 +50,7 @@
 static ros::Publisher odom_pub;                         // Odometry state publisher
 static ros::Publisher tube_pub;                         // Publishes tube locations
 static ros::Publisher path_pub;                         // Publishes path of actual robot
+static ros::Publisher sensor_pub;                       // Publishes Laser scanner methods
 static double frequency;                                // Ros loop frequency
 static nav_msgs::Path path;                             // Path of actual robot
 static rigid2d::DiffDrive turtle;                       // DiffDrive object to track robot configuration  
@@ -60,15 +63,24 @@ static std::normal_distribution<double> trans_noise;    // Translational velocit
 static std::normal_distribution<double> rot_noise;      // Rotational velocity normal distribution
 static std::normal_distribution<double> u;              // x-y sensor state normal distribution
 static arma::mat L(2,2);                                // x-y sensor state covariance matrix
-static double max_range;                                // Maximum range of laser scanner
 static double trans_var;                                // Translational velocity variance
-static std::vector<double> tube_var;                    // Tube location covariance
 static double rot_var;                                  // Rotational velocity variance
 static double slip_min;                                 // Minimum wheel slip coefficient
 static double slip_max;                                 // Maximum wheel slip coefficient
 static double tube_radius;                              // Tube radius
+static double max_range;                                // Maximum range of laser scanner
+static double min_range;                                // Minimum range of laser scanner
+static double resolution;                               // Laser distance resolution
+static int angle_inc;                                   // Angle increment 
+static int samples;                                     // Number of laser scanner samples
+static double laser_noise;                              // Laser scanner noise variance
+static double border_width;                             // Width of border wall
+static double border_height;                            // Height of border wall
+static std::vector<double> tube_var;                    // Tube location covariance
 static std::vector<double> tube_x, tube_y;              // Tube positions
 static std::vector<double> recorded_angles = {0,0};     // Wheel angles without noise
+visualization_msgs::Marker wall;
+
 
 
 /// \brief Returns a random number
@@ -222,6 +234,19 @@ void velCallback(const geometry_msgs::Twist::ConstPtr& msg){
 
     tube_pub.publish(tube_array);
 
+    ////////////////////////////////
+    // Publish Lidar Data
+    ////////////////////////////////
+
+    std::vector<int> ranges(360);
+    std::fill(ranges.begin(),ranges.end(),max_range + 1);
+
+    // Check for wall data
+
+    if (fabs(turtle.getX()-border_height/2)){
+        
+    }
+
 
     ////////////////////////////////
     // Broadcast transform
@@ -280,6 +305,13 @@ int main(int argc, char **argv)
     n.getParam("tube_y",tube_y);
     n.getParam("tube_radius",tube_radius);
     n.getParam("max_range",max_range);
+    n.getParam("min_range",min_range);
+    n.getParam("angle_inc",angle_inc);
+    n.getParam("samples",samples);
+    n.getParam("resolution",resolution);
+    n.getParam("laser_noise",laser_noise);
+    n.getParam("border_width",border_width);
+    n.getParam("border_height",border_height);
 
     // Set up normal distributions
     std::normal_distribution<double> d((slip_max+slip_min)/2,(slip_max - (slip_max+slip_min)/2));
@@ -304,8 +336,10 @@ int main(int argc, char **argv)
     // set up publishers and subscribers
     odom_pub = n.advertise<sensor_msgs::JointState>("joint_states", frequency);
     tube_pub = n.advertise<visualization_msgs::MarkerArray>("fake_sensor",frequency,true);
-    ros::Publisher truth_pub = n.advertise<visualization_msgs::MarkerArray>("ground_truth",frequency,true);
+    sensor_pub = n.advertise<sensor_msgs::LaserScan>("fake_lidar", 5);
     path_pub = n.advertise<nav_msgs::Path>("real_path",frequency);
+    ros::Publisher wall_pub = n.advertise<visualization_msgs::Marker>("wall",frequency,true);
+    ros::Publisher truth_pub = n.advertise<visualization_msgs::MarkerArray>("ground_truth",frequency,true);
     ros::Subscriber vel_sub = n.subscribe("turtle1/cmd_vel", 10, velCallback);
 
     // set publishing frequency
@@ -351,6 +385,50 @@ int main(int argc, char **argv)
     }
     truth_pub.publish(tube_array);
 
+    // Set up border wall
+    geometry_msgs::Point point;
+
+    wall.header.stamp = ros::Time::now();
+    wall.header.frame_id = world_frame_id;
+    wall.ns = "real";
+    wall.id = 0;
+    wall.type = 4;
+    wall.action = 0;
+    wall.scale.x = .1;
+    wall.color.a = 1;
+    wall.color.r = 1;
+    wall.color.g = 1;
+    wall.color.b = 1;
+    wall.pose.position.x = 0;
+    wall.pose.position.y = 0;
+
+    point.x = border_height/2;
+    point.y = border_width/2;
+    point.z = 0;
+    wall.points.push_back(point);
+
+    geometry_msgs::Point point2;
+    point2.x = border_height/2;
+    point2.y = -border_width/2;
+    point2.z = 0;
+    wall.points.push_back(point2);
+
+    geometry_msgs::Point point3;
+    point3.x = -border_height/2;
+    point3.y = -border_width/2;
+    point3.z = 0;
+    wall.points.push_back(point3);
+
+    geometry_msgs::Point point4;
+    point4.x = -border_height/2;
+    point4.y = border_width/2;
+    point4.z = 0;
+    wall.points.push_back(point4);
+    wall.points.push_back(point);
+
+    wall_pub.publish(wall);
+    
+
     int count = 0;
     while (ros::ok())
     {
@@ -359,7 +437,7 @@ int main(int argc, char **argv)
 
         loop_rate.sleep();
         ++count;
-  }
+    }
 
 
   return 0;

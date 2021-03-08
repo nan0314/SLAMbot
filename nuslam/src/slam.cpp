@@ -34,6 +34,7 @@
 #include <nav_msgs/Odometry.h>
 #include <visualization_msgs/MarkerArray.h>
 #include <sensor_msgs/JointState.h>
+#include <sensor_msgs/LaserScan.h>
 #include <nav_msgs/Path.h>
 #include <tf2_ros/transform_broadcaster.h>
 #include <tf2/LinearMath/Quaternion.h>
@@ -65,6 +66,7 @@ static std::string world_frame_id;          // Name of world frame
 static std::vector<double> cmd = {0,0};     // Stores wheel position from joint states publisher
 static std::unordered_map<int,int> init;    // Landmark initialization hash map-- tracks initialized landmarks
 static arma::vec estimation(3+2*max_landmarks,arma::fill::ones); // estimated state matrix (SLAM)
+static sensor_msgs::LaserScan yuh;
 
 
 /// \brief recieves encoder count and performs odometry
@@ -336,6 +338,13 @@ void slamCallback(const visualization_msgs::MarkerArray msg){
 }
 
 
+void lidarCallback(sensor_msgs::LaserScan msg){
+
+    yuh = msg;
+
+    return;
+}
+
 
 /// \brief reset the location of the odometry so that the robot thinks it is at the 
 /// requested configuration
@@ -429,6 +438,7 @@ int main(int argc, char **argv)
     odom_path_pub = n.advertise<nav_msgs::Path>("odom_path",frequency);
     slam_path_pub = n.advertise<nav_msgs::Path>("slam_path",frequency);
     tube_pub = n.advertise<visualization_msgs::MarkerArray>("estimated_tubes",10);
+    ros::Subscriber laser_sub = n.subscribe("scan",10,lidarCallback);
     ros::Subscriber joint_sub = n.subscribe("joint_states", frequency, stateCallback);
     ros::Subscriber sensor_sub = n.subscribe("fake_sensor",10,slamCallback);
 
@@ -454,7 +464,6 @@ int main(int argc, char **argv)
     int count = 0;
     while (ros::ok())
     {
-                
         ros::spinOnce();
 
         loop_rate.sleep();
