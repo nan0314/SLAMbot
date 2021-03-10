@@ -71,7 +71,7 @@ static double tube_radius;                              // Tube radius
 static double max_range;                                // Maximum range of laser scanner
 static double min_range;                                // Minimum range of laser scanner
 static double resolution;                               // Laser distance resolution
-static int angle_inc;                                   // Angle increment 
+static double angle_inc;                                   // Angle increment 
 static int samples;                                     // Number of laser scanner samples
 static double laser_noise;                              // Laser scanner noise variance
 static double border_width;                             // Width of border wall
@@ -234,18 +234,7 @@ void velCallback(const geometry_msgs::Twist::ConstPtr& msg){
 
     tube_pub.publish(tube_array);
 
-    ////////////////////////////////
-    // Publish Lidar Data
-    ////////////////////////////////
-
-    std::vector<int> ranges(360);
-    std::fill(ranges.begin(),ranges.end(),max_range + 1);
-
-    // Check for wall data
-
-    if (fabs(turtle.getX()-border_height/2)){
-        
-    }
+  
 
 
     ////////////////////////////////
@@ -276,6 +265,99 @@ void velCallback(const geometry_msgs::Twist::ConstPtr& msg){
 
     // broadcast transform to tf2
     br.sendTransform(transformStamped);
+
+
+
+    ////////////////////////////////
+    // Publish Lidar Data
+    ////////////////////////////////
+
+    std::vector<float> ranges(360);
+    std::vector<float> intensities(360);
+    std::fill(intensities.begin(),intensities.end(),4000);
+    std::fill(ranges.begin(),ranges.end(),max_range + 1);
+
+    // Check for circles with lidar
+    double x = turtle.getX();
+    double y = turtle.getY();
+
+    for (int i = 0; i<tube_x.size(); i++){
+
+        double x1 = x - tube_x[i];
+        double y1 = y - tube_y[i];
+        
+        int heading = round((atan2(y1,x1))/angle_inc);
+
+        for (int degree = heading - 45; degree < heading + 45; degree++){
+
+            double x2 = x1 + max_range*cos(double(degree)*angle_inc);
+            double y2 = y1 + max_range*sin(double(degree)*angle_inc);
+
+            double dx = x2 - x1;
+            double dy = y2 - y1;
+            double dr = sqrt(pow(dx,2) + pow(dy,2));
+            double D = x1*y2 - x2*y1;
+
+            double discriminant = pow(tube_radius,2)*pow(dr,2) - pow(D,2);
+
+            if (fabs(discriminant) < 0.000001){
+                double intercept_x = D*dy/pow(dr,2);
+                double intercept_y = -D*dx/pow(dr,2);
+
+                double r = sqrt(pow(intercept_x - x1,2) + pow(intercept_y - y1,2));
+                int angle = 180 + round(degree - turtle.getTh()/angle_inc);
+                if (angle < 0){
+                    angle += 360;
+                }
+
+                if (r < ranges[angle]){
+                    ranges[angle] = r;
+                }
+
+            } else if (discriminant > 0) {
+                double intercept_x1 = (D*dy + dy/fabs(dy)*dx*sqrt(discriminant))/pow(dr,2);
+                double intercept_y1 = (-D*dx + fabs(dy)*sqrt(discriminant))/pow(dr,2);
+                
+                double intercept_x2 = (D*dy - dy/fabs(dy)*dx*sqrt(discriminant))/pow(dr,2);
+                double intercept_y2 = (-D*dx - fabs(dy)*sqrt(discriminant))/pow(dr,2);
+
+                double r = sqrt(pow(intercept_x1 - x1,2) + pow(intercept_y1 - y1,2));
+                double r2 = sqrt(pow(intercept_x2 - x1,2) + pow(intercept_y2 - y1,2));
+
+                if (r2 < r){
+                    r = r2;
+                }
+
+                int angle = 180 + round(degree - turtle.getTh()/angle_inc);
+                if (angle < 0){
+                    angle += 360;
+                } else if (angle > 359){
+                    angle -= 360;
+                }
+
+                if (r < ranges[angle]){
+                    ranges[angle] = r;
+
+                }
+            }
+        }
+    }
+
+    // Set up LaserScan object
+    sensor_msgs::LaserScan scan;
+
+    scan.header.stamp = ros::Time::now();
+    scan.header.frame_id = turtle_frame_id;
+
+    scan.range_min = min_range;
+    scan.range_max = max_range;
+    scan.angle_min = 0;
+    scan.angle_max = 6.28319;
+    scan.angle_increment = angle_inc;
+    scan.ranges = ranges;
+    scan.intensities = intensities;
+
+    sensor_pub.publish(scan);  
 
     return;
 }
@@ -336,7 +418,7 @@ int main(int argc, char **argv)
     // set up publishers and subscribers
     odom_pub = n.advertise<sensor_msgs::JointState>("joint_states", frequency);
     tube_pub = n.advertise<visualization_msgs::MarkerArray>("fake_sensor",frequency,true);
-    sensor_pub = n.advertise<sensor_msgs::LaserScan>("fake_lidar", 5);
+    sensor_pub = n.advertise<sensor_msgs::LaserScan>("scan", 5);
     path_pub = n.advertise<nav_msgs::Path>("real_path",frequency);
     ros::Publisher wall_pub = n.advertise<visualization_msgs::Marker>("wall",frequency,true);
     ros::Publisher truth_pub = n.advertise<visualization_msgs::MarkerArray>("ground_truth",frequency,true);

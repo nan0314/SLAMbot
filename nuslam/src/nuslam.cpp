@@ -90,6 +90,9 @@ namespace nuslam{
             estimated_xi(2) = estimated_xi(2) + u_t.dx/u_t.dth*cos(th) - u_t.dx/u_t.dth*cos(th + u_t.dth);
         }
 
+        std::cout << "\rA" << std::endl;
+        A_t.print();
+
         // Set the estimated_xi to the prediction
         estimated_xi(0) = rigid2d::normalize_angle(estimated_xi(0));
 
@@ -173,6 +176,13 @@ namespace nuslam{
         arma::mat H_i = H(j);
         arma::mat K_i = uncertainty*arma::trans(H_i) * arma::inv(H_i*uncertainty*arma::trans(H_i) + R);
 
+        std::cout << "\rH" << std::endl;
+        H_i.print();
+        std::cout << "\rK_i" << std::endl;
+        K_i.print();
+        std::cout << "\rsigma" << std::endl;
+        uncertainty.print();
+
         // Refine the estimated state
         arma::vec dz = z_i - z_est;
         dz[1] = rigid2d::normalize_angle(dz[1]);
@@ -181,6 +191,10 @@ namespace nuslam{
 
         // Update the uncertainty matrix
         uncertainty = (arma::mat(3+2*n, 3+2*n,arma::fill::eye) - K_i*H_i) * uncertainty;
+
+        std::cout << "\rsigma2" << std::endl;
+        uncertainty.print();
+
 
         return estimated_xi;
     }
