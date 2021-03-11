@@ -62,6 +62,7 @@ static std::normal_distribution<double> wheel_slip;     // Wheel slip normal dis
 static std::normal_distribution<double> trans_noise;    // Translational velocity normal distribution
 static std::normal_distribution<double> rot_noise;      // Rotational velocity normal distribution
 static std::normal_distribution<double> u;              // x-y sensor state normal distribution
+static std::normal_distribution<double> laser_dist;         
 static arma::mat L(2,2);                                // x-y sensor state covariance matrix
 static double trans_var;                                // Translational velocity variance
 static double rot_var;                                  // Rotational velocity variance
@@ -80,6 +81,11 @@ static std::vector<double> tube_var;                    // Tube location covaria
 static std::vector<double> tube_x, tube_y;              // Tube positions
 static std::vector<double> recorded_angles = {0,0};     // Wheel angles without noise
 visualization_msgs::Marker wall;
+geometry_msgs::Point point1;
+geometry_msgs::Point point2;
+geometry_msgs::Point point3;
+geometry_msgs::Point point4;
+
 
 
 
@@ -122,6 +128,32 @@ bool collided(){
     }
 
     return false;
+}
+
+std::vector<double> findIntersect(double x1, double y1, double x2, double y2, geometry_msgs::Point w1, geometry_msgs::Point w2){
+
+    std::vector<double> out;
+    double x3 = w1.x;
+    double y3 = w1.y;
+    double x4 = w2.x;
+    double y4 = w2.y;
+
+    double d1 = x1*y2 - x2*y1;
+    double d2 = x3*y4 - x4*y3;
+    double bottom = (x1-x2)*(y3-y4) - (x3-x4)*(y1-y2);
+    double xtop = d1*(x3-x4) - d2*(x1-x2);
+    double ytop = d1*(y3-y4) - d2*(y1-y2);
+
+    if (fabs(bottom) > 0.0000001){
+        out.push_back(xtop/bottom);
+        out.push_back(ytop/bottom);
+    } else {
+        out.push_back(max_range + 1);
+        out.push_back(max_range + 1);
+    }
+
+    return out;
+
 }
 
 
@@ -277,14 +309,18 @@ void velCallback(const geometry_msgs::Twist::ConstPtr& msg){
     std::fill(intensities.begin(),intensities.end(),4000);
     std::fill(ranges.begin(),ranges.end(),max_range + 1);
 
-    // Check for circles with lidar
     double x = turtle.getX();
     double y = turtle.getY();
 
+    // Check for circles with lidar
     for (int i = 0; i<tube_x.size(); i++){
 
         double x1 = x - tube_x[i];
         double y1 = y - tube_y[i];
+
+        if (sqrt(pow(x1,2) + pow(y1,2)) - tube_radius > max_range){
+            continue;
+        }
         
         int heading = round((atan2(y1,x1))/angle_inc);
 
@@ -304,12 +340,14 @@ void velCallback(const geometry_msgs::Twist::ConstPtr& msg){
                 double intercept_x = D*dy/pow(dr,2);
                 double intercept_y = -D*dx/pow(dr,2);
 
-                double r = sqrt(pow(intercept_x - x1,2) + pow(intercept_y - y1,2));
+                double r = sqrt(pow(intercept_x - x1,2) + pow(intercept_y - y1,2)) + laser_dist(get_random());
                 int angle = 180 + round(degree - turtle.getTh()/angle_inc);
                 if (angle < 0){
                     angle += 360;
                 }
 
+                int r_int = r/resolution;
+                r = double(r_int)*resolution;
                 if (r < ranges[angle]){
                     ranges[angle] = r;
                 }
@@ -321,8 +359,8 @@ void velCallback(const geometry_msgs::Twist::ConstPtr& msg){
                 double intercept_x2 = (D*dy - dy/fabs(dy)*dx*sqrt(discriminant))/pow(dr,2);
                 double intercept_y2 = (-D*dx - fabs(dy)*sqrt(discriminant))/pow(dr,2);
 
-                double r = sqrt(pow(intercept_x1 - x1,2) + pow(intercept_y1 - y1,2));
-                double r2 = sqrt(pow(intercept_x2 - x1,2) + pow(intercept_y2 - y1,2));
+                double r = sqrt(pow(intercept_x1 - x1,2) + pow(intercept_y1 - y1,2)) + laser_dist(get_random());
+                double r2 = sqrt(pow(intercept_x2 - x1,2) + pow(intercept_y2 - y1,2)) + laser_dist(get_random());
 
                 if (r2 < r){
                     r = r2;
@@ -335,12 +373,63 @@ void velCallback(const geometry_msgs::Twist::ConstPtr& msg){
                     angle -= 360;
                 }
 
+                int r_int = r/resolution;
+                r = double(r_int)*resolution;
                 if (r < ranges[angle]){
                     ranges[angle] = r;
 
                 }
             }
         }
+
+        
+    }
+
+    // Check for walls
+
+    for (int degree = 0; degree < 360; degree++){
+        double x2 = x + max_range*cos(double(degree)*angle_inc);
+        double y2 = y + max_range*sin(double(degree)*angle_inc);
+
+        int angle = round(degree - turtle.getTh()/angle_inc);
+        if (angle < 0){
+            angle += 360;
+        } else if (angle > 359){
+            angle -= 360;
+        }
+
+        std::vector<double> intersection = findIntersect(x,y,x2,y2,point1,point2);
+        double r = sqrt(pow(x-intersection[0],2) + pow(y-intersection[1],2)) + laser_dist(get_random());
+        int r_int = r/resolution;
+        r = double(r_int)*resolution;
+        if ((degree < 90 & degree > 269) & r<ranges[angle]){
+            ranges[angle] = r;
+        }
+
+        intersection = findIntersect(x,y,x2,y2,point2,point3);
+        r = sqrt(pow(x-intersection[0],2) + pow(y-intersection[1],2)) + laser_dist(get_random());
+        r_int = r/resolution;
+        r = double(r_int)*resolution;
+        if (degree > 180 & r<ranges[angle]){
+            ranges[angle] = r;
+        }
+
+        intersection = findIntersect(x,y,x2,y2,point3,point4);
+        r = sqrt(pow(x-intersection[0],2) + pow(y-intersection[1],2)) + laser_dist(get_random());
+        r_int = r/resolution;
+        r = double(r_int)*resolution;
+        if ((degree > 90 & degree < 270) & r<ranges[angle]){
+            ranges[angle] = r;
+        }
+
+        intersection = findIntersect(x,y,x2,y2,point4,point1);
+        r = sqrt(pow(x-intersection[0],2) + pow(y-intersection[1],2)) + laser_dist(get_random());
+        r_int = r/resolution;
+        r = double(r_int)*resolution;
+        if (degree < 180 & r<ranges[angle]){
+            ranges[angle] = r;
+        }
+
     }
 
     // Set up LaserScan object
@@ -404,6 +493,8 @@ int main(int argc, char **argv)
     rot_noise = d2;
     std::normal_distribution<double> d3(0.0,1);
     u = d3;
+    std::normal_distribution<double> d4(0.0,laser_noise);
+    laser_dist = d4;
 
     arma::mat Q(2,2);
     Q(0,0) = tube_var[0];
@@ -468,7 +559,6 @@ int main(int argc, char **argv)
     truth_pub.publish(tube_array);
 
     // Set up border wall
-    geometry_msgs::Point point;
 
     wall.header.stamp = ros::Time::now();
     wall.header.frame_id = world_frame_id;
@@ -484,29 +574,26 @@ int main(int argc, char **argv)
     wall.pose.position.x = 0;
     wall.pose.position.y = 0;
 
-    point.x = border_height/2;
-    point.y = border_width/2;
-    point.z = 0;
-    wall.points.push_back(point);
+    point1.x = border_height/2;
+    point1.y = border_width/2;
+    point1.z = 0;
+    wall.points.push_back(point1);
 
-    geometry_msgs::Point point2;
     point2.x = border_height/2;
     point2.y = -border_width/2;
     point2.z = 0;
     wall.points.push_back(point2);
 
-    geometry_msgs::Point point3;
     point3.x = -border_height/2;
     point3.y = -border_width/2;
     point3.z = 0;
     wall.points.push_back(point3);
 
-    geometry_msgs::Point point4;
     point4.x = -border_height/2;
     point4.y = border_width/2;
     point4.z = 0;
     wall.points.push_back(point4);
-    wall.points.push_back(point);
+    wall.points.push_back(point1);
 
     wall_pub.publish(wall);
     
