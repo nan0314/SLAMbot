@@ -11,6 +11,6 @@ min_range: 0.12
 angle_inc: 0.01745329238474369
 samples: 360
 resolution: 0.015
-laser_noise: 0.01
+laser_noise: 0.0
 border_width: 10
 border_height: 10

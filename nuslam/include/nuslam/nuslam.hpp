@@ -3,10 +3,21 @@
 
 #include "rigid2d/rigid2d.hpp"
 #include "rigid2d/diff_drive.hpp"
+#include <geometry_msgs/Point.h>
+#include <visualization_msgs/Marker.h>
 #include <vector>
 #include <armadillo>
 
 namespace nuslam{
+
+    std::vector<std::vector<geometry_msgs::Point>> findClusters(std::vector<float> ranges, double max_range, double min_range);
+
+
+    bool classifyCircle(std::vector<geometry_msgs::Point> cluster);
+
+
+    visualization_msgs::Marker fitCircle(std::vector<geometry_msgs::Point> circle);
+
 
     /// \brief takes a 2d vector in cartesian [x,y] coordinates and converts it
     ///  into a 2d vector in polar coordinates [r,phi] 

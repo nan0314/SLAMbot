@@ -19,15 +19,13 @@
     <param name="right_wheel_joint" value = "wheel_right_joint"/>
   </node>
 
+  <node pkg="nuslam" name="detection" type="landmarks" output="screen"/>
+
   <group unless="$(eval robot == 'localhost')">
     <include file="$(find nuturtle_robot)/launch/basic_remote.launch" >
       <arg name="robot" value="$(arg robot)" />
     </include>
- 
   </group>
-
-
-
   
   <node pkg="nurtlesim" name="fake" type="tube_world" output = "screen" if="$(eval robot == 'localhost')">
     <param name="wheel_base" value ="0.16"/>

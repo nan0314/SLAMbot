@@ -195,7 +195,7 @@ void slamCallback(const visualization_msgs::MarkerArray msg){
         // Calculate z_i
         std::vector<double> polar = nuslam::cartesian2polar(cartesian);
         z_i(0) = polar[0];
-        z_i(1) = rigid2d::normalize_angle(polar[1] - estimation(0));
+        z_i(1) = rigid2d::normalize_angle(polar[1]);
         j = marker.id;
 
         if (init.find(j) == init.end()){

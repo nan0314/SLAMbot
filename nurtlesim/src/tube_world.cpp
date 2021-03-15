@@ -228,6 +228,11 @@ void velCallback(const geometry_msgs::Twist::ConstPtr& msg){
     geometry_msgs::Pose tube_pose;
     visualization_msgs::MarkerArray tube_array;
 
+    rigid2d::Vector2D v;
+    v.x = turtle.getX();
+    v.y = turtle.getY();
+    rigid2d::Transform2D T_wt(v,turtle.getTh());
+
     for (int i = 0; i<tube_x.size(); i++){
         
         // Get the tube location
@@ -235,8 +240,15 @@ void velCallback(const geometry_msgs::Twist::ConstPtr& msg){
         u_vec(0) = u(get_random());
         u_vec(1) = u(get_random());
         arma::vec tube_noise = L*u_vec;
-        tube_pose.position.x = tube_x[i] + tube_noise(0) - turtle.getX();
-        tube_pose.position.y = tube_y[i] + tube_noise(1) - turtle.getY();
+
+        rigid2d::Vector2D tube_pos;
+        tube_pos.x = tube_x[i];
+        tube_pos.y = tube_y[i];
+        tube_pos = T_wt.inv()(tube_pos);
+
+
+        tube_pose.position.x = tube_pos.x + tube_noise(0);
+        tube_pose.position.y = tube_pos.y + tube_noise(1);
 
         // Set up the marker msg for the tube;
         tube.header.stamp = ros::Time::now();

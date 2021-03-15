@@ -20,6 +20,8 @@
     <param name="right_wheel_joint" value = "wheel_right_joint"/>
   </node>
 
+  <node pkg="nuslam" name="detection" type="landmarks" output="screen"/>
+
   <node pkg="turtlebot3_teleop" type="turtlebot3_teleop_key" name="teleop" output="screen">
     <remap from="cmd_vel" to="turtle1/cmd_vel"/> 
   </node>

@@ -142,6 +142,7 @@ add_library(${PROJECT_NAME}
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
 add_executable(slam src/slam.cpp)
+add_executable(landmarks src/landmarks.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -171,6 +172,11 @@ target_link_libraries(${PROJECT_NAME}
   ${catkin_LIBRARIES}
 )
 
+target_link_libraries(landmarks
+  ${ARMADILLO_LIBRARIES}
+  ${PROJECT_NAME}
+  ${catkin_LIBRARIES}
+)
 #############
 ## Install ##
 #############
@@ -187,7 +193,7 @@ target_link_libraries(${PROJECT_NAME}
 
 ## Mark executables for installation
 ## See http://docs.ros.org/melodic/api/catkin/html/howto/format1/building_executables.html
-install(TARGETS slam
+install(TARGETS slam landmarks
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 

@@ -6,6 +6,217 @@
 
 namespace nuslam{
 
+    std::vector<std::vector<geometry_msgs::Point>> findClusters(std::vector<float> ranges,double max_range, double min_range){
+
+        using rigid2d::deg2rad;
+        using rigid2d::rad2deg;
+        std::vector<std::vector<geometry_msgs::Point>> clusters;
+
+        int degree = 0;
+        double thresh = 0.07;
+
+        while (degree < ranges.size()){
+
+            // Ignore if not within laser range
+            if (ranges[degree] > max_range | ranges[degree] < min_range){
+                degree+=1;
+                continue;
+            }
+
+            // If the distance between current point and previous point is less than threshold value
+            // add it to the current cluster
+
+            int angle = degree;
+            int next = (degree + 1) % 360;
+
+            geometry_msgs::Point point;
+            point.x = ranges[angle]*cos(deg2rad(angle));
+            point.y = ranges[angle]*sin(deg2rad(angle));
+            std::vector<geometry_msgs::Point> cluster = {point};
+
+            double current_dist = sqrt(pow(point.x,2) + pow(point.y,2));
+            double next_dist = sqrt(pow(ranges[next]*cos(deg2rad(next)),2) + pow(ranges[next]*sin(deg2rad(next)),2));
+
+            while (fabs(current_dist - next_dist) < thresh){
+
+                angle = next;
+                next = (angle + 1) % 360;
+
+                point.x = ranges[angle]*cos(deg2rad(angle));
+                point.y = ranges[angle]*sin(deg2rad(angle));
+
+                current_dist = sqrt(pow(point.x,2) + pow(point.y,2));
+                next_dist = sqrt(pow(ranges[next]*cos(deg2rad(next)),2) + pow(ranges[next]*sin(deg2rad(next)),2));
+
+                cluster.push_back(point);
+            }
+
+            // If the cluster is too small skip it otherwise keep track of that cluster.
+            if (cluster.size() > 3 & degree < angle){
+                clusters.push_back(cluster);
+            } else if (cluster.size() > 3 & degree >= angle){
+                std::vector<geometry_msgs::Point> combined;
+                combined.reserve(clusters[0].size() + cluster.size());
+                combined.insert(combined.end(), clusters[0].begin(),clusters[0].end());
+                combined.insert(combined.end(),cluster.begin(),cluster.end());
+
+                clusters[0] = combined;
+            }
+
+            // Update degree
+            if (degree < angle){
+                degree = angle;
+            } else if (degree == angle){
+                degree += 1;
+            } else {
+                degree+=angle;
+            }
+
+        }
+
+        return clusters;
+
+    }
+
+    bool classifyCircle(std::vector<geometry_msgs::Point> cluster){
+
+        using rigid2d::rad2deg;
+
+        geometry_msgs::Point p2 = cluster[0];
+        geometry_msgs::Point p3 = cluster[cluster.size()-1];
+
+        // Find the angles between the arc endpoints and each internal point in degrees
+        std::vector<double> angles;
+        for (int i = 1; i<cluster.size()-1; i++){
+
+            geometry_msgs::Point p1 = cluster[i];
+            double numerator = p2.y*(p1.x-p3.x) + p1.y*(p3.x-p2.x) + p3.y*(p2.x-p1.x);
+            double denominator = (p2.x-p1.x)*(p1.x-p3.x) + (p2.y-p1.y)*(p1.y-p3.y);
+
+            double angle = rad2deg(atan(numerator/denominator));
+
+            angles.push_back(angle);
+        }
+
+        // Find mean of angles
+        double mean = 0;
+        for (auto angle : angles){
+            mean += angle/angles.size();
+        }
+
+        // Calculate std deviation
+        double std_dev = 0;
+        for (auto angle : angles){
+            std_dev += pow(angle - mean,2);
+        }
+
+        std_dev = sqrt(std_dev/angles.size());
+
+
+        if (std_dev < 10){
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+
+    visualization_msgs::Marker fitCircle(std::vector<geometry_msgs::Point> circle){
+
+        int id = 0;
+        double x_mean = 0;
+        double y_mean = 0;
+        for (auto point : circle){
+            x_mean += point.x/circle.size();
+            y_mean += point.y/circle.size();
+        }
+
+        // Shift coordinates by the mean
+        for (auto point : circle){
+            point.x -= x_mean;
+            point.y -= y_mean;
+        }
+
+        // Create Z matrixy_mean += cirlce.y/circles.size()
+        arma::mat Z(circle.size(),4,arma::fill::eye);
+        double z_mean = 0;
+        for (int i = 0; i<circle.size(); i++){
+            geometry_msgs::Point p = circle[i];
+            double z = pow(p.x,2) + pow(p.y,2);
+            z_mean += z/circle.size();
+
+            Z(i,0) = z;
+            Z(i,1) = p.x;
+            Z(i,2) = p.y;
+        }
+
+        // Calculate H inverse Matrix
+        arma::mat Hinv(4,4,arma::fill::eye);
+        Hinv(4,0) = 0.5;
+        Hinv(0,4) = 0.5;
+        Hinv(0,0) = 0.0;
+        Hinv(4,4) = -2*z_mean;
+
+        // Perform SVD
+        arma::mat U;
+        arma::vec s;
+        arma::mat V;
+
+        svd(U,s,V,Z);  
+
+        // Calculate A Matrix
+        arma::vec A;
+        if (s(3) < 10e-12){
+            A = V.col(3);
+        } else {
+            arma::mat sig = Z.fill(0);
+            sig(arma::span(0,s.size()),arma::span(0,s.size())) = arma::diagmat(s);
+            arma::mat Y = V*sig*V.t();
+            arma::mat Q = Y*Hinv*Y;
+
+            arma::vec eigval;
+            arma::mat eigvec;
+
+            arma::eig_sym(eigval, eigvec, Q);
+
+            int index = 0;
+            double val = INT_MAX;
+            for (int i = 0; i<eigval.size();i++){
+                if (eigval[i]<val){
+                    val = eigval[i];
+                    index = i;
+                }
+            }
+
+            arma::vec Astar = eigvec.col(index);
+            A = arma::solve(Y,Astar);
+        }
+
+        // Calculate equation for circle
+        double a = -A(1)/(2*A(0));
+        double b = -A(2)/(2*A(0));
+        double R_squared = (pow(A(1),2) + pow(A(2),2) -4*A(0)*A(5)) / (4*pow(A(0),2));
+
+
+        // Set up the marker msg for the tube;
+
+        visualization_msgs::Marker tube;
+        tube.ns = "real";
+        tube.id = id++;
+        tube.type = 3;
+        tube.action = 0;
+        tube.pose.position.x = a + x_mean;
+        tube.pose.position.y = b + y_mean;
+        tube.scale.z = 1;
+        tube.color.r = 1;
+        tube.color.g = 1;
+        tube.color.b = 1;
+        tube.color.a = 1;
+
+        return tube;
+    }
+
+
     std::vector<double> cartesian2polar(std::vector<double> cartesian){
 
         std::vector<double> polar;
@@ -90,9 +301,6 @@ namespace nuslam{
             estimated_xi(2) = estimated_xi(2) + u_t.dx/u_t.dth*cos(th) - u_t.dx/u_t.dth*cos(th + u_t.dth);
         }
 
-        std::cout << "\rA" << std::endl;
-        A_t.print();
-
         // Set the estimated_xi to the prediction
         estimated_xi(0) = rigid2d::normalize_angle(estimated_xi(0));
 
@@ -176,13 +384,6 @@ namespace nuslam{
         arma::mat H_i = H(j);
         arma::mat K_i = uncertainty*arma::trans(H_i) * arma::inv(H_i*uncertainty*arma::trans(H_i) + R);
 
-        std::cout << "\rH" << std::endl;
-        H_i.print();
-        std::cout << "\rK_i" << std::endl;
-        K_i.print();
-        std::cout << "\rsigma" << std::endl;
-        uncertainty.print();
-
         // Refine the estimated state
         arma::vec dz = z_i - z_est;
         dz[1] = rigid2d::normalize_angle(dz[1]);
@@ -191,10 +392,6 @@ namespace nuslam{
 
         // Update the uncertainty matrix
         uncertainty = (arma::mat(3+2*n, 3+2*n,arma::fill::eye) - K_i*H_i) * uncertainty;
-
-        std::cout << "\rsigma2" << std::endl;
-        uncertainty.print();
-
 
         return estimated_xi;
     }
