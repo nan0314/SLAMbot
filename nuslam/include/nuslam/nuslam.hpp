@@ -31,6 +31,7 @@ namespace nuslam{
         private:
 
         int n;                      // Maximum number of landmarks
+        int N = 0;                  // Number of landmarks already observed.
         arma::mat uncertainty;      // Covariance matrix
         arma::mat Q;                // State covariance
         arma::mat R;                // Sensor covariance
@@ -81,6 +82,9 @@ namespace nuslam{
         /// \returns linear state estimation matrix A_t
         arma::mat A(const rigid2d::Twist2D& u_t);           // DEPRECATED
 
+        
+        arma::mat H2(int j,arma::vec temp);
+
         /// \brief Outputs linear map estimation matrix
         /// \param j - landmark number/ID
         /// \return linear map estimation matrix
@@ -97,6 +101,8 @@ namespace nuslam{
         /// \param j - landmark number/ID
         /// \returns refined estimate state
         arma::vec update(rigid2d::Twist2D u_t, arma::vec z_i,int j);
+
+        int associate_landmark(arma::vec z_i);
     };
 
     

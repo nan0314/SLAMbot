@@ -338,13 +338,52 @@ namespace nuslam{
         return out;
     }
 
+    arma::mat Filter::H2(int j,arma::vec temp){
+
+        double delx,dely,d;
+        arma::mat out;
+        if (j>=n){
+            delx = temp(3+2*j) - temp(1);
+            dely = temp(4+2*j) - temp(2);
+            d = pow(delx,2)+pow(dely,2);
+
+            out = arma::mat(2,3+2*(n+1),arma::fill::zeros);
+        } else {
+            delx = estimated_xi(3+2*j) - estimated_xi(1);
+            dely = estimated_xi(4+2*j) - estimated_xi(2);
+            d = pow(delx,2)+pow(dely,2);
+
+            out = arma::mat(2,3+2*n,arma::fill::zeros);
+        }
+
+        
+
+        out(0,1) = -delx/pow(d,0.5);
+        out(0,2) = -dely/pow(d,0.5);
+        out(0,3+2*j) = delx/pow(d,0.5);
+        out(0,4+2*j) = dely/pow(d,0.5);
+
+        out(1,0) = -1;
+        out(1,1) = dely/d;
+        out(1,2) = -delx/d;
+        out(1,3+2*j) = -dely/d;
+        out(1,4+2*j) = delx/d;
+
+        return out;
+    }
+
     arma::mat Filter::H(int j){
 
-        double delx = estimated_xi(3+2*j) - estimated_xi(1);
-        double dely = estimated_xi(4+2*j) - estimated_xi(2);
-        double d = pow(delx,2)+pow(dely,2);
+        double delx,dely,d;
+        arma::mat out;
 
-        arma::mat out(2,3+2*n,arma::fill::zeros);
+        delx = estimated_xi(3+2*j) - estimated_xi(1);
+        dely = estimated_xi(4+2*j) - estimated_xi(2);
+        d = pow(delx,2)+pow(dely,2);
+
+        out = arma::mat(2,3+2*n,arma::fill::zeros);
+
+        
 
         out(0,1) = -delx/pow(d,0.5);
         out(0,2) = -dely/pow(d,0.5);
@@ -399,6 +438,34 @@ namespace nuslam{
         uncertainty = (arma::mat(3+2*n, 3+2*n,arma::fill::eye) - K_i*H_i) * uncertainty;
 
         return estimated_xi;
+    }
+
+    int Filter::associate_landmark(arma::vec z_i){
+
+        arma::vec temp(3+2*(N+1));
+        double thresh = 4;
+
+        if (N == 0){
+            return N++;
+        }
+
+        temp(arma::span(0,2+2*N)) = estimated_xi(arma::span(0,2+2*N));
+        temp(3+2*N) = temp(1) + z_i(0)*cos(z_i(1) + temp(0));
+        temp(4+2*N) = temp(2) + z_i(0)*sin(z_i(1) + temp(0));
+
+        for (int i = 0; i<N; i++){
+            arma::mat H_k = H2(i,temp);
+            arma::mat cov = H_k*uncertainty*H_k.t() + R;
+            arma::vec z_est = h(i);
+            arma::mat dkmat = (z_i - z_est).t() * cov.i() * (z_i - z_est);
+            double dk = dkmat(0);
+
+            if (dk < thresh){
+                return i;
+            }
+        }
+
+        return ++N;
     }
 
 

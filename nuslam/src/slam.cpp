@@ -338,9 +338,180 @@ void slamCallback(const visualization_msgs::MarkerArray msg){
 }
 
 
-void lidarCallback(sensor_msgs::LaserScan msg){
+void lidarCallback(visualization_msgs::MarkerArray msg){
 
-    yuh = msg;
+    ///////////////////////////////
+    // SLAM
+    ///////////////////////////////
+
+    std::vector<double> prev = slambot.getEncoders();
+    std::vector<double> dphi;
+    dphi.push_back(cmd[0]-prev[0]);
+    dphi.push_back(cmd[1]-prev[1]);
+    rigid2d::Twist2D u_t = slambot.control2twist(dphi);
+    rigid2d::Twist2D dq = slambot.update(cmd);
+
+    // Perform SLAM to refine estimation
+    arma::vec z_i(2);
+    int j;
+
+    // Propogate the uncertainty/Feed the prediction to the filter
+    estimation = filter.predict(u_t);
+
+
+    for (auto marker : msg.markers){
+
+
+            
+        // Extract the cartesian distances between the landmark and turtle
+        std::vector<double> cartesian;
+        cartesian.push_back(marker.pose.position.x);
+        cartesian.push_back(marker.pose.position.y);
+
+        // Calculate z_i
+        std::vector<double> polar = nuslam::cartesian2polar(cartesian);
+        z_i(0) = polar[0];
+        z_i(1) = rigid2d::normalize_angle(polar[1]);
+
+        // Perform data association
+        j = filter.associate_landmark(z_i);
+
+        std::cout << "\r" << j << std::endl;
+        if (init.find(j) == init.end()){
+            init[j] = 1;
+            filter.initialize_landmark(z_i,j);
+            estimation = filter.getEstimate();
+        }
+
+
+        // update our estimated state
+        estimation = filter.update(u_t,z_i,j);
+        estimation(0) = rigid2d::normalize_angle(estimation(0));
+    }
+
+    // Set up MarkerArray
+    visualization_msgs::Marker tube;
+    geometry_msgs::Pose tube_pose;
+    visualization_msgs::MarkerArray tube_array;
+
+    // Handle estimated tubes
+
+    for (int j = 0; j<max_landmarks; j++){
+
+         if (init.find(j) == init.end()){
+            continue;
+        }
+
+        tube_pose.position.x = estimation(3+2*j);
+        tube_pose.position.y = estimation(4+2*j);
+
+        // Set up the marker msg for the tube;
+        tube.header.stamp = ros::Time::now();
+        tube.header.frame_id = map_frame_id;
+        tube.ns = "estimated";
+        tube.id = j;
+        tube.type = 3;
+        tube.action = 0;
+        tube.pose = tube_pose;
+        tube.scale.x = 2*tube_radius;
+        tube.scale.y = 2*tube_radius;
+        tube.scale.z = 1;
+        tube.color.r = 117.0/255.0;
+        tube.color.g = 255.0/255.0;
+        tube.color.b = 255.0/255.0;
+        tube.color.a = 1;
+
+        // Append it to Markers message
+        tube_array.markers.push_back(tube);
+    }
+
+    tube_pub.publish(tube_array);
+
+
+    // Format estimated state into pose object  
+    tf2::Quaternion slam_q;
+    slam_q.setRPY(0, 0, estimation(0));
+    geometry_msgs::Quaternion slam_quat = tf2::toMsg(slam_q); // convert tf2 quaternion to geometry_msg
+
+    geometry_msgs::Pose estimated_pose;
+    estimated_pose.orientation = slam_quat;
+    estimated_pose.position.x = estimation(1);
+    estimated_pose.position.y = estimation(2);
+
+    // Add pose to path
+    geometry_msgs::PoseStamped ps;
+    ps.pose = estimated_pose;
+
+    estimated_path.poses.push_back(ps);
+    slam_path_pub.publish(estimated_path);
+
+
+    ////////////////////////////////
+    // Transforms
+    ////////////////////////////////
+
+    rigid2d::Vector2D v;
+    v.x = turtle.getX();
+    v.y = turtle.getY();
+    rigid2d::Transform2D T_ob(v,0);
+    v.x = estimation(1);
+    v.y = estimation(2);
+    rigid2d::Transform2D T_mb(v,0);
+
+    rigid2d::Transform2D T_mo = T_mb*T_ob.inv();
+
+    // Calculate odom to turtle rotational transform
+    tf2::Quaternion slam2odom_q;
+    slam2odom_q.setRPY(0, 0, rigid2d::normalize_angle(asin(T_mo.getStheta())));
+    geometry_msgs::Quaternion slam2odom_quat = tf2::toMsg(slam2odom_q); // convert tf2 quaternion to geometry_msg
+
+    // initialize tf2 transform broadcaster
+    tf2_ros::TransformBroadcaster br;
+    geometry_msgs::TransformStamped transformStamped;    
+    transformStamped.header.stamp = ros::Time::now();
+    transformStamped.header.frame_id = map_frame_id;
+    transformStamped.child_frame_id = odom_frame_id;
+
+    // set translational information
+    transformStamped.transform.translation.x = T_mo.getX();
+    transformStamped.transform.translation.y = T_mo.getY();
+    transformStamped.transform.translation.z = 0.0;
+    
+    // set rotational information
+    transformStamped.transform.rotation.x = slam2odom_q.x();
+    transformStamped.transform.rotation.y = slam2odom_q.y();
+    transformStamped.transform.rotation.z = slam2odom_q.z();
+    transformStamped.transform.rotation.w = slam2odom_q.w();
+
+    // broadcast transform to tf2
+    br.sendTransform(transformStamped);
+
+
+    tf2_ros::TransformBroadcaster wbr;
+    geometry_msgs::TransformStamped wtransformStamped; 
+    // Calculate odom to turtle rotational transform
+    tf2::Quaternion world2map_q;
+    world2map_q.setRPY(0, 0, 0);
+    geometry_msgs::Quaternion world2map_quat = tf2::toMsg(world2map_q); // convert tf2 quaternion to geometry_msg
+
+    // initialize tf2 transform broadcaster 
+    wtransformStamped.header.stamp = ros::Time::now();
+    wtransformStamped.header.frame_id = world_frame_id;
+    wtransformStamped.child_frame_id = map_frame_id;
+
+    // set translational information
+    wtransformStamped.transform.translation.x = 0;
+    wtransformStamped.transform.translation.y = 0;
+    wtransformStamped.transform.translation.z = 0.0;
+    
+    // set rotational information
+    wtransformStamped.transform.rotation.x = world2map_q.x();
+    wtransformStamped.transform.rotation.y = world2map_q.y();
+    wtransformStamped.transform.rotation.z = world2map_q.z();
+    wtransformStamped.transform.rotation.w = world2map_q.w();
+
+    // broadcast transform to tf2
+    wbr.sendTransform(wtransformStamped);
 
     return;
 }
@@ -438,9 +609,9 @@ int main(int argc, char **argv)
     odom_path_pub = n.advertise<nav_msgs::Path>("odom_path",frequency);
     slam_path_pub = n.advertise<nav_msgs::Path>("slam_path",frequency);
     tube_pub = n.advertise<visualization_msgs::MarkerArray>("estimated_tubes",10);
-    ros::Subscriber laser_sub = n.subscribe("scan",10,lidarCallback);
     ros::Subscriber joint_sub = n.subscribe("joint_states", frequency, stateCallback);
-    ros::Subscriber sensor_sub = n.subscribe("fake_sensor",10,slamCallback);
+    // ros::Subscriber sensor_sub = n.subscribe("fake_sensor",10,slamCallback);
+    ros::Subscriber lidar_sub = n.subscribe("real_sensor",10,lidarCallback);
 
     // set up services
     ros::ServiceServer service = n.advertiseService("set_pose", set_pose);

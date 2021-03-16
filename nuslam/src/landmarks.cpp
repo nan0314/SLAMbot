@@ -49,8 +49,6 @@ void detectCallback(const sensor_msgs::LaserScan& msg){
     
     clusters = nuslam::findClusters(ranges,max_range,min_range);
 
-    std::cout << "\r" << clusters.size() << std::endl;
-
 
     ///////////////////////////
     // Detrmine Tubes
@@ -62,8 +60,6 @@ void detectCallback(const sensor_msgs::LaserScan& msg){
             circles.push_back(points);
         }
     }
-
-    std::cout << "\r" << circles.size() << std::endl << std::endl;
 
 
     ///////////////////////////
