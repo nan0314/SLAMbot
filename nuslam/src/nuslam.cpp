@@ -132,13 +132,13 @@ namespace nuslam{
         }
 
         // Shift coordinates by the mean
-        for (auto point : circle){
-            point.x -= x_mean;
-            point.y -= y_mean;
+        for (int i = 0; i<circle.size(); i++){
+            circle[i].x = circle[i].x - x_mean;
+            circle[i].y = circle[i].y - y_mean;
         }
 
         // Create Z matrixy_mean += cirlce.y/circles.size()
-        arma::mat Z(circle.size(),4,arma::fill::eye);
+        arma::mat Z(circle.size(),4,arma::fill::ones);
         double z_mean = 0;
         for (int i = 0; i<circle.size(); i++){
             geometry_msgs::Point p = circle[i];
@@ -152,10 +152,10 @@ namespace nuslam{
 
         // Calculate H inverse Matrix
         arma::mat Hinv(4,4,arma::fill::eye);
-        Hinv(4,0) = 0.5;
-        Hinv(0,4) = 0.5;
+        Hinv(3,0) = 0.5;
+        Hinv(0,3) = 0.5;
         Hinv(0,0) = 0.0;
-        Hinv(4,4) = -2*z_mean;
+        Hinv(3,3) = -2*z_mean;
 
         // Perform SVD
         arma::mat U;
@@ -166,12 +166,14 @@ namespace nuslam{
 
         // Calculate A Matrix
         arma::vec A;
-        if (s(3) < 10e-12){
+        if (s(3) < 1e-12){
             A = V.col(3);
         } else {
-            arma::mat sig = Z.fill(0);
-            sig(arma::span(0,s.size()),arma::span(0,s.size())) = arma::diagmat(s);
-            arma::mat Y = V*sig*V.t();
+            // arma::mat sig = Z.fill(0);
+            // std::cout << Z.size() << std::endl;
+            // std::cout << s.size() << std::endl << std::endl << std::endl << std::endl;
+            // sig(arma::span(0,s.size()-1),arma::span(0,s.size()-1)) = arma::diagmat(s);
+            arma::mat Y = V*arma::diagmat(s)*V.t();
             arma::mat Q = Y*Hinv*Y;
 
             arma::vec eigval;
@@ -182,7 +184,7 @@ namespace nuslam{
             int index = 0;
             double val = INT_MAX;
             for (int i = 0; i<eigval.size();i++){
-                if (eigval[i]<val){
+                if (eigval[i]<val & eigval[i] > 0){
                     val = eigval[i];
                     index = i;
                 }
@@ -195,7 +197,8 @@ namespace nuslam{
         // Calculate equation for circle
         double a = -A(1)/(2*A(0));
         double b = -A(2)/(2*A(0));
-        double R_squared = (pow(A(1),2) + pow(A(2),2) -4*A(0)*A(5)) / (4*pow(A(0),2));
+        double R_squared = (pow(A(1),2) + pow(A(2),2) -4*A(0)*A(3)) / (4*pow(A(0),2));
+        double tube_radius = sqrt(R_squared);
 
 
         // Set up the marker msg for the tube;
@@ -207,10 +210,12 @@ namespace nuslam{
         tube.action = 0;
         tube.pose.position.x = a + x_mean;
         tube.pose.position.y = b + y_mean;
+        tube.scale.x = 2*tube_radius;
+        tube.scale.y = 2*tube_radius;
         tube.scale.z = 1;
-        tube.color.r = 1;
-        tube.color.g = 1;
-        tube.color.b = 1;
+        tube.color.r = 80./255.;
+        tube.color.g = 220./255.;
+        tube.color.b = 100./255.;    
         tube.color.a = 1;
 
         return tube;

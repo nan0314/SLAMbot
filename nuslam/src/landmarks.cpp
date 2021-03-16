@@ -85,8 +85,6 @@ void detectCallback(const sensor_msgs::LaserScan& msg){
 
     marker_pub.publish(tube_array);
         
-
-
     return;
 }
 

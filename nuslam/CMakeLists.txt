@@ -241,3 +241,13 @@ target_link_libraries(nuslam_test
   ${PROJECT_NAME}
   ${ARMADILLO_LIBRARIES}
 )
+
+catch_add_test(circle_tests
+  tests/circle_tests.cpp
+)
+target_link_libraries(circle_tests
+  rigid2d
+	${catkin_LIBRARIES}
+  ${PROJECT_NAME}
+  ${ARMADILLO_LIBRARIES}
+)
