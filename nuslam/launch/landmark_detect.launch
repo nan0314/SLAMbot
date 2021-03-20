@@ -1,0 +1,20 @@
+<launch>
+
+  <arg name="robot" default="localhost" doc="allows the user to specify the hostname of the turtlebot"/>
+  
+  <group if="$(eval robot == 'localhost')">
+    <include file="$(find nurtlesim)/launch/tube_world.launch" >
+    </include>
+  </group>
+
+  <group unless="$(eval robot == 'localhost')">
+    <include file="$(find nuturtle_robot)/launch/basic_remote.launch" >
+      <arg name="robot" value="$(arg robot)" />
+    </include>
+
+    <node pkg="nuslam" name="detection" type="landmarks" output="screen"/>
+  </group>
+
+
+
+</launch>

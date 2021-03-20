@@ -49,11 +49,9 @@ void detectCallback(const sensor_msgs::LaserScan& msg){
     
     clusters = nuslam::findClusters(ranges,max_range,min_range);
 
-
     ///////////////////////////
     // Detrmine Tubes
     ///////////////////////////
-
     std::vector<std::vector<geometry_msgs::Point>> circles;
     for (auto points : clusters){
         if (nuslam::classifyCircle(points)){
@@ -65,13 +63,15 @@ void detectCallback(const sensor_msgs::LaserScan& msg){
     ///////////////////////////
     // Find Tube Locations
     ///////////////////////////
-
     visualization_msgs::Marker tube;
     visualization_msgs::MarkerArray tube_array;
 
     for (auto circle : circles){
 
         tube = nuslam::fitCircle(circle);
+        if (tube.scale.x/2 >1){
+            continue;
+        }
         tube.header.stamp = ros::Time::now();
         tube.header.frame_id = turtle_frame_id;
         tube.scale.x = 2*tube_radius;
@@ -101,11 +101,11 @@ int main(int argc, char **argv)
     n.getParam("turtle_frame_id",turtle_frame_id);
 
     // set up publishers and subscribers
-    marker_pub = n.advertise<visualization_msgs::MarkerArray>("real_sensor", frequency);
+    marker_pub = n.advertise<visualization_msgs::MarkerArray>("real_sensor", 20);
     ros::Subscriber scan_sub = n.subscribe("scan", 10, detectCallback);
 
     // set publishing frequency
-    ros::Rate loop_rate(frequency);
+    ros::Rate loop_rate(20);
 
 
     int count = 0;

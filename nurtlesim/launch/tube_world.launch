@@ -22,9 +22,7 @@
 
   <node pkg="nuslam" name="detection" type="landmarks" output="screen"/>
 
-  <node pkg="turtlebot3_teleop" type="turtlebot3_teleop_key" name="teleop" output="screen">
-    <remap from="cmd_vel" to="turtle1/cmd_vel"/> 
-  </node>
+  <node pkg="turtlebot3_teleop" type="turtlebot3_teleop_key" name="teleop" output="screen"/>
 
   <node name="rviz" pkg="rviz" type="rviz" args="-d $(find nurtlesim)/config/model.rviz -f world"/>
 

@@ -1,14 +1,14 @@
 <launch>
 
   <arg name="robot" default="localhost" doc="allows the user to specify the hostname of the turtlebot"/>
-  <arg name="simulate" defualt="true"/>
+
+  <param name="simulate" value="false"/>
   <param name="frequency" value = "10"/>
   <param name="world_frame_id" value ="world"/>
   <param name="turtle_frame_id" value = "turtle"/>
   <param name="map_frame_id" value="map"/>
   <arg name="urdf_file" default="$(find xacro)/xacro '$(find nuturtle_description)/urdf/turtlebot3_burger.urdf.xacro'"/>
   <param name="robot_description" command="$(arg urdf_file)"/>
-  <param name="simulate" value="$(arg simulate)"/>
   <rosparam file="$(find nuslam)/config/covariance.yaml" />
   <rosparam file="$(find nuturtle_description)/config/diff_params.yaml" />  
   <rosparam file="$(find nurtlesim)/config/tube_world_params.yaml" />  
@@ -23,9 +23,28 @@
   <node pkg="nuslam" name="detection" type="landmarks" output="screen"/>
 
   <group unless="$(eval robot == 'localhost')">
-    <include file="$(find nuturtle_robot)/launch/basic_remote.launch" >
+
+    <!-- <include file="$(find nuturtle_robot)/launch/basic_remote.launch" >
       <arg name="robot" value="$(arg robot)" />
-    </include>
+    </include> -->
+
+    <machine name="turtlebot" address="$(arg robot)" env-loader="/home/ubuntu/loader.sh" user="ubuntu"/>
+
+    <node pkg="rosserial_python" type="serial_node.py" name="serial" machine="turtlebot">
+      <param name="port" value="/dev/ttyACM0"/>
+      <param name="baud" value="115200"/>
+    </node>
+
+    <node pkg="hls_lfcd_lds_driver" type="hlds_laser_publisher" name="laser" machine="turtlebot"/>
+
+
+    <node pkg="nuturtle_robot" name="turtle" type="turtle_interface" output="screen" machine="turtlebot">
+      <param name="wheel_base" value ="0.16"/>
+      <param name="wheel_radius" value = "0.033"/>
+      <param name="left_wheel_joint" value = "wheel_left_joint"/>
+      <param name="right_wheel_joint" value = "wheel_right_joint"/>
+    </node>
+
   </group>
   
   <node pkg="nurtlesim" name="fake" type="tube_world" output = "screen" if="$(eval robot == 'localhost')">
@@ -35,9 +54,7 @@
     <param name="right_wheel_joint" value = "wheel_right_joint"/>
   </node>
 
-  <node pkg="turtlebot3_teleop" type="turtlebot3_teleop_key" name="teleop" output="screen">
-    <remap from="cmd_vel" to="turtle1/cmd_vel"/>
-  </node>
+  <node pkg="turtlebot3_teleop" type="turtlebot3_teleop_key" name="teleop"/>
 
   <node name="rviz" pkg="rviz" type="rviz" args="-d $(find nuslam)/config/model.rviz -f world --opengl 210"/>
   <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher">

@@ -11,6 +11,7 @@ Panels:
         - /Marker1
         - /Path1
         - /LaserScan1
+        - /MarkerArray2
       Splitter Ratio: 0.5
     Tree Height: 1366
   - Class: rviz/Selection
@@ -152,6 +153,14 @@ Visualization Manager:
       Use Fixed Frame: true
       Use rainbow: true
       Value: true
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: /real_sensor
+      Name: MarkerArray
+      Namespaces:
+        real: true
+      Queue Size: 100
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -180,7 +189,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 5.511748313903809
+      Distance: 7.205277442932129
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -198,7 +207,7 @@ Visualization Manager:
       Near Clip Distance: 0.009999999776482582
       Pitch: 1.5697963237762451
       Target Frame: <Fixed Frame>
-      Yaw: 0.7403980493545532
+      Yaw: 2.265397071838379
     Saved: ~
 Window Geometry:
   Displays:

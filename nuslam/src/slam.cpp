@@ -11,6 +11,7 @@
 ///     tube_radius (doudle): radius of tube objects
 ///     wheel_radius (double): radius of wheel
 ///     wheel_base (double): distance between wheels in robot
+///     simulate (boolean): true if doing SLAM in algorithm
 ///     Q (arma::mat) state covariance matrix
 ///     R (arma::mat) sensor covariance matrix
 ///
@@ -23,14 +24,14 @@
 /// SUBSCRIBES:
 ///     joint_states (sensor_msgs/JointState): messages hold Joint State for each non-fixed joint in the robot
 ///     fake_sensor (visualization_msgs/MarkerArray): messages hold array of Marker objects containing
-///     locations of tubes
+///     locations of tubes with data association
+///     real_sensor (visualization_msgs/MarkerArray): messages hold array oof Marker objects containing
+///     locations of tubes without data association
 /// SERVICES:
-///     set_pose (rigid2d/set_pose): reset the location of the odometry so that the robot thinks it is at the 
-///     requested configuration
+///     No services
 
 
 #include <ros/ros.h>
-#include <rigid2d/set_pose.h>
 #include <nav_msgs/Odometry.h>
 #include <visualization_msgs/MarkerArray.h>
 #include <sensor_msgs/JointState.h>
@@ -66,7 +67,6 @@ static std::string world_frame_id;          // Name of world frame
 static std::vector<double> cmd = {0,0};     // Stores wheel position from joint states publisher
 static std::unordered_map<int,int> init;    // Landmark initialization hash map-- tracks initialized landmarks
 static arma::vec estimation(3+2*max_landmarks,arma::fill::ones); // estimated state matrix (SLAM)
-static sensor_msgs::LaserScan yuh;
 
 
 /// \brief recieves encoder count and performs odometry
@@ -157,7 +157,7 @@ void stateCallback(const sensor_msgs::JointState::ConstPtr& msg){
     return;
 }
 
-/// \brief fake_sensor callback-- recieves tube locations from sensor and 
+/// \brief fake_sensor callback-- recieves tube locations from fake_sensor and 
 /// performs SLAM
 /// \param msg - MarkerArray containing tube locations
 void slamCallback(const visualization_msgs::MarkerArray msg){
@@ -337,7 +337,9 @@ void slamCallback(const visualization_msgs::MarkerArray msg){
     return;
 }
 
-
+/// \brief real_sensor callback-- recieves tube locations from lidar and 
+/// performs SLAM
+/// \param msg - MarkerArray containing tube locations
 void lidarCallback(visualization_msgs::MarkerArray msg){
 
     ///////////////////////////////
@@ -376,7 +378,10 @@ void lidarCallback(visualization_msgs::MarkerArray msg){
         // Perform data association
         j = filter.associate_landmark(z_i);
 
-        std::cout << "\r" << j << std::endl;
+        if (j < 0) {
+            continue;
+        }
+        
         if (init.find(j) == init.end()){
             init[j] = 1;
             filter.initialize_landmark(z_i,j);
@@ -516,48 +521,6 @@ void lidarCallback(visualization_msgs::MarkerArray msg){
     return;
 }
 
-
-/// \brief reset the location of the odometry so that the robot thinks it is at the 
-/// requested configuration
-/// \param req - set_pose request (user specified location)
-/// \param res - service response/output object (unused)
-bool set_pose(rigid2d::set_pose::Request  &req,
-            rigid2d::set_pose::Response &res )
-{
-    // Update DiffDrive object
-    turtle.set_pose(req.th,req.x,req.y);
-
-    ///////////////////////////////
-    // Publish odometry message
-    ///////////////////////////////
-
-    nav_msgs::Odometry odom;
-    odom.header.frame_id = odom_frame_id;
-
-    //since all odometry is 6DOF we'll need a quaternion created from yaw
-    tf2::Quaternion odom_q;
-    odom_q.setRPY(0, 0, turtle.getTh());
-    geometry_msgs::Quaternion odom_quat = tf2::toMsg(odom_q);
-
-
-    //set the position
-    odom.pose.pose.position.x = turtle.getX();
-    odom.pose.pose.position.y = turtle.getY();
-    odom.pose.pose.position.z = 0.0;
-    odom.pose.pose.orientation = odom_quat;
-
-    //set the velocity
-    odom.child_frame_id = body_frame_id;
-    odom.twist.twist.linear.x = 0;
-    odom.twist.twist.linear.y = 0;
-    odom.twist.twist.angular.z = 0;
-
-    // publish the message
-    odom_pub.publish(odom);
-
-    return true;
-}
-
 int main(int argc, char **argv)
 {
     // initialize node/node handles
@@ -568,11 +531,13 @@ int main(int argc, char **argv)
     double wb,r;
     std::vector<double> Qrow;
     std::vector<double> Rrow;
+    bool simulate;
 
     ros::param::get("~odom_frame_id",odom_frame_id);
     ros::param::get("~body_frame_id",body_frame_id);
     ros::param::get("~left_wheel_joint",left_wheel_joint);
     ros::param::get("~right_wheel_joint",right_wheel_joint);
+    n.getParam("simulate",simulate);
     n.getParam("tube_radius",tube_radius);
     n.getParam("Q",Qrow);
     n.getParam("R",Rrow);
@@ -610,11 +575,13 @@ int main(int argc, char **argv)
     slam_path_pub = n.advertise<nav_msgs::Path>("slam_path",frequency);
     tube_pub = n.advertise<visualization_msgs::MarkerArray>("estimated_tubes",10);
     ros::Subscriber joint_sub = n.subscribe("joint_states", frequency, stateCallback);
-    // ros::Subscriber sensor_sub = n.subscribe("fake_sensor",10,slamCallback);
-    ros::Subscriber lidar_sub = n.subscribe("real_sensor",10,lidarCallback);
+    ros::Subscriber sensor_sub;
+    if (simulate){
+        sensor_sub = n.subscribe("fake_sensor",10,slamCallback);
+    } else {
+        sensor_sub = n.subscribe("real_sensor",10,lidarCallback);
+    }
 
-    // set up services
-    ros::ServiceServer service = n.advertiseService("set_pose", set_pose);
 
 
     // Set Path header

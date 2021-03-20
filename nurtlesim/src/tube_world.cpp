@@ -18,14 +18,23 @@
 ///     right_wheel_joint (string): Name of right wheel joint frame
 ///     world_frame_id (string): Name of world frame
 ///     turtle_frame_id (string): Name of turtle frame
+///     max_range (double): maximum range of lidar
+///     min_range (double): minimum range of lidar
+///     angle_inc (double): lidar angle increment
+///     samples (int): the number of samples in the lidar data
+///     resolution (double): lidar resolution
+///     laser_noise (double): lidar data noise variance
+///     border_width (double): border wall width
+///     border_height (double): border wall height
 ///     
 /// PUBLISHES:
 ///     joint_states (sensor_msgs/JointState): messages hold Joint State for each non-fixed joint in the robot
 ///     fake_sensor (visualization_msgs/MarkerArray): messages hold landmark positions with noise
 ///     ground_truth (visualization_msgs/MarkerArray): messages hold landmark positions without noise
 ///     real_path (nav_msgs): holds pose states for the simulated turtle for each time step
+///     scan (sensor_msgs::LaserScan): holds lidar sensor data
 /// SUBSCRIBES:
-///     turtle1/cmd_vel (geometry_msgs/Twist): angular/linear velocity commands
+///     cmd_vel (geometry_msgs/Twist): angular/linear velocity commands
 /// SERVICES:
 ///     No services
 
@@ -62,7 +71,7 @@ static std::normal_distribution<double> wheel_slip;     // Wheel slip normal dis
 static std::normal_distribution<double> trans_noise;    // Translational velocity normal distribution
 static std::normal_distribution<double> rot_noise;      // Rotational velocity normal distribution
 static std::normal_distribution<double> u;              // x-y sensor state normal distribution
-static std::normal_distribution<double> laser_dist;         
+static std::normal_distribution<double> laser_dist;     // Laser noise
 static arma::mat L(2,2);                                // x-y sensor state covariance matrix
 static double trans_var;                                // Translational velocity variance
 static double rot_var;                                  // Rotational velocity variance
@@ -72,7 +81,7 @@ static double tube_radius;                              // Tube radius
 static double max_range;                                // Maximum range of laser scanner
 static double min_range;                                // Minimum range of laser scanner
 static double resolution;                               // Laser distance resolution
-static double angle_inc;                                   // Angle increment 
+static double angle_inc;                                // Angle increment 
 static int samples;                                     // Number of laser scanner samples
 static double laser_noise;                              // Laser scanner noise variance
 static double border_width;                             // Width of border wall
@@ -80,11 +89,11 @@ static double border_height;                            // Height of border wall
 static std::vector<double> tube_var;                    // Tube location covariance
 static std::vector<double> tube_x, tube_y;              // Tube positions
 static std::vector<double> recorded_angles = {0,0};     // Wheel angles without noise
-visualization_msgs::Marker wall;
-geometry_msgs::Point point1;
-geometry_msgs::Point point2;
-geometry_msgs::Point point3;
-geometry_msgs::Point point4;
+visualization_msgs::Marker wall;                        // Border wall object
+geometry_msgs::Point point1;                            // Border wall corner 1
+geometry_msgs::Point point2;                            // Border wall corner 2
+geometry_msgs::Point point3;                            // Border wall corner 3
+geometry_msgs::Point point4;                            // Border wall conrer 4
 
 
 
@@ -414,7 +423,7 @@ void velCallback(const geometry_msgs::Twist::ConstPtr& msg){
         double r = sqrt(pow(x-intersection[0],2) + pow(y-intersection[1],2)) + laser_dist(get_random());
         int r_int = r/resolution;
         r = double(r_int)*resolution;
-        if ((degree < 90 & degree > 269) & r<ranges[angle]){
+        if ((degree < 90 | degree > 269) & r<ranges[angle]){
             ranges[angle] = r;
         }
 
@@ -525,7 +534,7 @@ int main(int argc, char **argv)
     path_pub = n.advertise<nav_msgs::Path>("real_path",frequency);
     ros::Publisher wall_pub = n.advertise<visualization_msgs::Marker>("wall",frequency,true);
     ros::Publisher truth_pub = n.advertise<visualization_msgs::MarkerArray>("ground_truth",frequency,true);
-    ros::Subscriber vel_sub = n.subscribe("turtle1/cmd_vel", 10, velCallback);
+    ros::Subscriber vel_sub = n.subscribe("cmd_vel", 10, velCallback);
 
     // set publishing frequency
     ros::Rate loop_rate(frequency);

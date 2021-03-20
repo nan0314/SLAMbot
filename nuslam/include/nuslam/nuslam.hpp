@@ -10,12 +10,24 @@
 
 namespace nuslam{
 
+    /// \brief takes a vector of lidar range data, lidar maximum range, and minimum range
+    /// and returns a vector of clusters of points
+    /// \param ranges - 360 element vector<float> of lidar range data
+    /// \param max_range - maximum range of the lidar
+    /// \param min_range - minimum range of the lidar
+    /// \returns vector containing clusters of points vectors (vector of geometry_msgs::Point);
     std::vector<std::vector<geometry_msgs::Point>> findClusters(std::vector<float> ranges, double max_range, double min_range);
 
-
+    /// \brief takes a cluster (vector of geometry_msgs::Point) and returns true if circle
+    /// else returns false
+    /// \param cluster - geometry_msgs::Point vector of points containing to same landmark
+    /// \returns true if object is circle else false
     bool classifyCircle(std::vector<geometry_msgs::Point> cluster);
 
-
+    /// \brief Takes vector of points belonging to a circular object and returns a 
+    /// visualization_msgs::Marker cylinder centered at the center of the detected circle
+    /// \param circle - cluster of points belonging to a circular object
+    /// \returns cylinder centered at the center of the detected circle
     visualization_msgs::Marker fitCircle(std::vector<geometry_msgs::Point> circle);
 
 
@@ -82,7 +94,10 @@ namespace nuslam{
         /// \returns linear state estimation matrix A_t
         arma::mat A(const rigid2d::Twist2D& u_t);           // DEPRECATED
 
-        
+        /// \brief Outputs linear map estimation matrix
+        /// \param j - landmark number/ID
+        /// \param temp - state estimation vector
+        /// \return linear map estimation matrix
         arma::mat H2(int j,arma::vec temp);
 
         /// \brief Outputs linear map estimation matrix
@@ -102,10 +117,12 @@ namespace nuslam{
         /// \returns refined estimate state
         arma::vec update(rigid2d::Twist2D u_t, arma::vec z_i,int j);
 
+        /// \brief Performs data association on observed objects
+        /// \param z_i - observed object relative position in range-bearing coordinate
+        /// [r theta]
+        /// \returns Returns an integer ID representing the object
         int associate_landmark(arma::vec z_i);
-    };
-
-    
+    };    
 
 }
 

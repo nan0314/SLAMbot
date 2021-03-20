@@ -16,6 +16,7 @@ namespace nuslam{
         double thresh = 0.07;
 
         while (degree < ranges.size()){
+            
 
             // Ignore if not within laser range
             if (ranges[degree] > max_range | ranges[degree] < min_range){
@@ -69,11 +70,10 @@ namespace nuslam{
             } else if (degree == angle){
                 degree += 1;
             } else {
-                degree+=angle;
+                break;
             }
 
         }
-
         return clusters;
 
     }
@@ -84,7 +84,7 @@ namespace nuslam{
 
         geometry_msgs::Point p2 = cluster[0];
         geometry_msgs::Point p3 = cluster[cluster.size()-1];
-
+        
         // Find the angles between the arc endpoints and each internal point in degrees
         std::vector<double> angles;
         for (int i = 1; i<cluster.size()-1; i++){
@@ -113,7 +113,7 @@ namespace nuslam{
         std_dev = sqrt(std_dev/angles.size());
 
 
-        if (std_dev < 10){
+        if (std_dev < 20){
             return true;
         } else {
             return false;
@@ -130,13 +130,11 @@ namespace nuslam{
             x_mean += point.x/circle.size();
             y_mean += point.y/circle.size();
         }
-
         // Shift coordinates by the mean
         for (int i = 0; i<circle.size(); i++){
             circle[i].x = circle[i].x - x_mean;
             circle[i].y = circle[i].y - y_mean;
         }
-
         // Create Z matrixy_mean += cirlce.y/circles.size()
         arma::mat Z(circle.size(),4,arma::fill::ones);
         double z_mean = 0;
@@ -149,7 +147,6 @@ namespace nuslam{
             Z(i,1) = p.x;
             Z(i,2) = p.y;
         }
-
         // Calculate H inverse Matrix
         arma::mat Hinv(4,4,arma::fill::eye);
         Hinv(3,0) = 0.5;
@@ -168,11 +165,7 @@ namespace nuslam{
         arma::vec A;
         if (s(3) < 1e-12){
             A = V.col(3);
-        } else {
-            // arma::mat sig = Z.fill(0);
-            // std::cout << Z.size() << std::endl;
-            // std::cout << s.size() << std::endl << std::endl << std::endl << std::endl;
-            // sig(arma::span(0,s.size()-1),arma::span(0,s.size()-1)) = arma::diagmat(s);
+        } else {            
             arma::mat Y = V*arma::diagmat(s)*V.t();
             arma::mat Q = Y*Hinv*Y;
 
@@ -202,7 +195,6 @@ namespace nuslam{
 
 
         // Set up the marker msg for the tube;
-
         visualization_msgs::Marker tube;
         tube.ns = "real";
         tube.id = id++;
@@ -443,7 +435,7 @@ namespace nuslam{
     int Filter::associate_landmark(arma::vec z_i){
 
         arma::vec temp(3+2*(N+1));
-        double thresh = 4;
+        double thresh = 55;
 
         if (N == 0){
             return N++;
@@ -460,12 +452,15 @@ namespace nuslam{
             arma::mat dkmat = (z_i - z_est).t() * cov.i() * (z_i - z_est);
             double dk = dkmat(0);
 
-            if (dk < thresh){
+            if (dk < thresh & dk < 0.01){
                 return i;
+            } else if (dk < thresh & dk > 0.01){
+                return -1;
             }
+
         }
 
-        return ++N;
+        return N++;
     }
 
 
