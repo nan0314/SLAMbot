@@ -1,6 +1,6 @@
 tube_x: [1.4, 0.5, 0.76, -3, -2]
 tube_y: [-0.75, 1.64, -2, -3.4, 1.75]
-tube_radius: 0.0762
+tube_radius: 0.0381
 tube_var: [0.00001, 0., 0., 0.00001]
 slip_min: 0.9
 slip_max: 1

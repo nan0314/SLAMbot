@@ -435,7 +435,8 @@ namespace nuslam{
     int Filter::associate_landmark(arma::vec z_i){
 
         arma::vec temp(3+2*(N+1));
-        double thresh = 55;
+        double thresh = 10000000;
+        double limit = 10000;
 
         if (N == 0){
             return N++;
@@ -452,9 +453,9 @@ namespace nuslam{
             arma::mat dkmat = (z_i - z_est).t() * cov.i() * (z_i - z_est);
             double dk = dkmat(0);
 
-            if (dk < thresh & dk < 0.01){
+            if (dk < thresh & dk < limit){
                 return i;
-            } else if (dk < thresh & dk > 0.01){
+            } else if (dk < thresh & dk > limit){
                 return -1;
             }
 
