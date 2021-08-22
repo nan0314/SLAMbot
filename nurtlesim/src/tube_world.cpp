@@ -345,7 +345,7 @@ void velCallback(const geometry_msgs::Twist::ConstPtr& msg){
         
         int heading = round((atan2(y1,x1))/angle_inc);
 
-        for (int degree = heading - 45; degree < heading + 45; degree++){
+        for (int degree = heading - 20; degree < heading + 20; degree++){
 
             double x2 = x1 + max_range*cos(double(degree)*angle_inc);
             double y2 = y1 + max_range*sin(double(degree)*angle_inc);
