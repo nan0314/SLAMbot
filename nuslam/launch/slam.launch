@@ -1,7 +1,7 @@
 <launch>
 
   <arg name="robot" default="localhost" doc="allows the user to specify the hostname of the turtlebot"/>
-  <arg name="simulate" defualt="true"/>
+  <arg name="simulate" default="true"/>
   <param name="frequency" value = "10"/>
   <param name="world_frame_id" value ="world"/>
   <param name="turtle_frame_id" value = "turtle"/>
@@ -28,23 +28,21 @@
     </include>
   </group>
   
-  <node pkg="nurtlesim" name="fake" type="tube_world" output = "screen" if="$(eval robot == 'localhost')">
+  <node pkg="nurtlesim" name="fake" type="tube_world" output = "screen">
     <param name="wheel_base" value ="0.16"/>
     <param name="wheel_radius" value = "0.033"/>
     <param name="left_wheel_joint" value = "wheel_left_joint"/>
     <param name="right_wheel_joint" value = "wheel_right_joint"/>
   </node>
 
-  <node pkg="turtlebot3_teleop" type="turtlebot3_teleop_key" name="teleop" output="screen">
-    <remap from="cmd_vel" to="turtle1/cmd_vel"/>
-  </node>
+  <node pkg="turtlebot3_teleop" type="turtlebot3_teleop_key" name="teleop" output="screen"/>
 
-  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find nuslam)/config/model.rviz -f world --opengl 210"/>
+
+  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find nuslam)/config/model.rviz -f world"/>
+
   <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher">
     <param name="publish_frequency" type="double" value="1000.0" />
     <param name="tf_prefix" value=""/>
   </node>
-
-
 
 </launch>

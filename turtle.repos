@@ -5,5 +5,5 @@ repositories:
     version: master
   src/turtlebot3-navigation:
     type: git
-    url: https://github.com/ME495-Navigation/assignment-nan0314.git
+    url: https://github.com/nan0314/SLAMbot.git
     version: devel

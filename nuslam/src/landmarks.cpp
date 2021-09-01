@@ -34,9 +34,6 @@ static double tube_radius;
 static std::string turtle_frame_id;
 
 
-/// \brief recieve velocity command and cause fake_turtle to move 
-/// to fulfill velocity command
-/// \param msg geometry_msg/Twist pointer holding velocity command
 void detectCallback(const sensor_msgs::LaserScan& msg){
 
 
