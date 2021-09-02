@@ -1,4 +1,4 @@
-# ME495 Sensing, Navigation and Machine Learning For Robotics
+# Robot Navigation from Scratch
 
 This repository contains packages that enable the odometry and landmark based EKF SLAM for a differential drive robot, several supporting libraries, and testing nodes. The repository has all the resources needed to run either in simulation or on a physical TurtlBot3 burger. Currently, the repository does not support path planning or autonomous driving capabilities.
 
@@ -36,15 +36,10 @@ Run the full SLAM implementation using node groundtruth information to do pose e
 roslaunch nuslam slam.launch
 ```
 
-
-This works as a proof of concept for the EKF SLAM as the algorithm is running using the actual ground truth relative locations of the landmarks with respect to the turtlebot with a small amount of noise applied. The red path indicates the odometry which is achieved by dead reckoning alone, the green path is the actual path of the turtlebot, and the blue path is the EKF estimated path of the turtlebot.
-
 Run the full SLAM implementation using actual simulated laser scan data ([Landmark Based EKF SLAM - Simulation Unknown Data Association](https://youtu.be/sqKf19MjhSI))
 ```
 roslaunch nuslam unknown_data_assoc.launch
 ```
-
-Taking the next step, the input into the EKF SLAM algorithm is generated from simulated laser scan data. The algorithm becomes very sensitive to the perception algorithms to correctly recognize and track landmarks as well as accurately identify the relative distance of the landmark given laser scan data.
 
 #### On Hardware
 
@@ -55,8 +50,6 @@ Taking the next step, the input into the EKF SLAM algorithm is generated from si
 ```
 roslaunch nuslam unkown_data_assoc.launch robot:=your_turtlebot_hostname.local
 ```
-
-Finally, the algorithm is deployed on a real turtlebot. With high levels of noise, the landmark inputs are extremely noisy causing poor EKF SLAM performance. More work must be done to address this. See the TODO section.
 
 ## TODO
 
