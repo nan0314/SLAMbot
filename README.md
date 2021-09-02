@@ -31,7 +31,7 @@ These directions assume you have completed installation and setup of ROS Noetic 
 
 #### Simulation
 
-* Run the full SLAM implementation using node groundtruth information to do pose estimation ([Landmark Based EKF SLAM - Simulation Data Known](https://youtu.be/KneLeDTZ0w8))
+Run the full SLAM implementation using node groundtruth information to do pose estimation ([Landmark Based EKF SLAM - Simulation Data Known](https://youtu.be/KneLeDTZ0w8))
 ```
 roslaunch nuslam slam.launch
 ```
@@ -39,7 +39,7 @@ roslaunch nuslam slam.launch
 
 This works as a proof of concept for the EKF SLAM as the algorithm is running using the actual ground truth relative locations of the landmarks with respect to the turtlebot with a small amount of noise applied. The red path indicates the odometry which is achieved by dead reckoning alone, the green path is the actual path of the turtlebot, and the blue path is the EKF estimated path of the turtlebot.
 
-* Run the full SLAM implementation using actual simulated laser scan data ([Landmark Based EKF SLAM - Simulation Unknown Data Association](https://youtu.be/sqKf19MjhSI))
+Run the full SLAM implementation using actual simulated laser scan data ([Landmark Based EKF SLAM - Simulation Unknown Data Association](https://youtu.be/sqKf19MjhSI))
 ```
 roslaunch nuslam unknown_data_assoc.launch
 ```
@@ -48,13 +48,13 @@ Taking the next step, the input into the EKF SLAM algorithm is generated from si
 
 #### On Hardware
 
-* Make sure you are connected via wifi to your Turtlebot3
+1. Make sure you are connected via wifi to your Turtlebot3
 
-* Run the full SLAM implementation on your Turtlebot3 ([Landmark based EKF SLAM - Hardware Unknown Data Association](https://youtu.be/Q8GBbYuN-bo))
+2. Run the full SLAM implementation on your Turtlebot3 ([Landmark based EKF SLAM - Hardware Unknown Data Association](https://youtu.be/Q8GBbYuN-bo)):
 
-'''
+```
 roslaunch nuslam unkown_data_assoc.launch robot:=your_turtlebot_hostname.local
-'''
+```
 
 Finally, the algorithm is deployed on a real turtlebot. With high levels of noise, the landmark inputs are extremely noisy causing poor EKF SLAM performance. More work must be done to address this. See the TODO section.
 
