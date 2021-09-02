@@ -36,9 +36,9 @@ These directions assume you have completed installation and setup of ROS Noetic 
 roslaunch nuslam slam.launch
 ```
 
-[![Landmark Based EKF SLAM - Simulation Data Known](https://res.cloudinary.com/marcomontalbano/image/upload/v1630556130/video_to_markdown/images/youtube--KneLeDTZ0w8-c05b58ac6eb4c4700831b2b3070cd403.jpg)](https://youtu.be/KneLeDTZ0w8 "Landmark Based EKF SLAM - Simulation Data Known")
+![Landmark Based EKF SLAM - Simulation Data Known](https://youtu.be/KneLeDTZ0w8)
 
-This works as a proof of concept for the EKF SLAM as the algorithm is running using the actual ground truth relative locations of the landmarks with respect to the turtlebot. The red path indicates the odometry which is achieved by dead reckoning alone, the green path is the actual path of the turtlebot, and the blue path is the EKF estimated path of the turtlebot.
+This works as a proof of concept for the EKF SLAM as the algorithm is running using the actual ground truth relative locations of the landmarks with respect to the turtlebot with a small amount of noise applied. The red path indicates the odometry which is achieved by dead reckoning alone, the green path is the actual path of the turtlebot, and the blue path is the EKF estimated path of the turtlebot.
 
 * Run the full SLAM implementation using actual simulated laser scan data
 ```
