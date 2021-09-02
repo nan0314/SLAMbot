@@ -50,7 +50,7 @@ Taking the next step, the input into the EKF SLAM algorithm is generated from si
 
 * Make sure you are connected via wifi to your Turtlebot3
 
-* Run the full SLAM implementation on your Turtlebot3 ([Landmark based EKF SLAM - Hardware Unknown Data Association](https://youtu.be/Q8GBbYuN-bo)):
+* Run the full SLAM implementation on your Turtlebot3 ([Landmark based EKF SLAM - Hardware Unknown Data Association](https://youtu.be/Q8GBbYuN-bo))
 
 '''
 roslaunch nuslam unkown_data_assoc.launch robot:=your_turtlebot_hostname.local
